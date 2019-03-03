@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.28307.329
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KestrelMock", "KestrelMock\KestrelMock.csproj", "{CAB2FE14-542A-441D-9B54-6917B977AE83}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KestrelMock.Tests", "..\KestrelMock.Tests\KestrelMock.Tests.csproj", "{A3E8DCF7-C4FF-4CC7-A377-61B89A559552}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{CAB2FE14-542A-441D-9B54-6917B977AE83}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CAB2FE14-542A-441D-9B54-6917B977AE83}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CAB2FE14-542A-441D-9B54-6917B977AE83}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3E8DCF7-C4FF-4CC7-A377-61B89A559552}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3E8DCF7-C4FF-4CC7-A377-61B89A559552}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3E8DCF7-C4FF-4CC7-A377-61B89A559552}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3E8DCF7-C4FF-4CC7-A377-61B89A559552}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
