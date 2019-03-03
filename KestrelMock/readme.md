@@ -1,17 +1,21 @@
-### Kestrel Mock
+# Kestrel Mock
 
 A .Net Core HTTP mock server.
 
 
-Example Use
+## Example Use
 ```
 var config = new ConfigurationBuilde().AddJsonFile("appsettings.json", optional: false).Build();
 
 KestrelMock.Run(config);
 
 ```
+## Install
+```
+dotnet add package KestrelMock
+```
 
-Example appsettings.json
+## Example appsettings.json
 
 ```json
 {
