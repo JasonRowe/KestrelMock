@@ -22,6 +22,19 @@ namespace KestrelMock.Tests
 		}
 
 		[Fact]
+		public void ValidateConfiguration()
+		{
+			try
+			{
+				KestrelMock.Run(new ConfigurationBuilder().Build());
+			}
+			catch (Exception ex)
+			{
+				Assert.Contains("Configuration must include 'MockSettings' section", ex.Message);
+			}
+		}
+
+		[Fact]
 		public void CanMockResponseUsingPathStartsWith()
 		{
 			KestrelMock.Run(new ConfigurationBuilder()
@@ -67,6 +80,13 @@ namespace KestrelMock.Tests
 		{
 			return new ConfigurationBuilder()
 						.AddJsonFile("appsettings.json", optional: false)
+						.Build();
+		}
+
+		private static IConfigurationRoot BuildBadConfiguration()
+		{
+			return new ConfigurationBuilder()
+						.AddJsonFile("bad.appsettings.json", optional: false)
 						.Build();
 		}
 	}
