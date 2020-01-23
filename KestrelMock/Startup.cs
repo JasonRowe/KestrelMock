@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -29,9 +30,10 @@ namespace KestrelMock
 		{
 			app.Run(async (context) =>
 			{
-				if (_pathMappings.IsEmpty)
+				if (_pathMappings.IsEmpty && _pathStartsWithMappings.IsEmpty && _bodyCheckMappings.IsEmpty)
 				{
 					SetupPathMappings();
+					LoadBodyFromFile();
 				}
 
 				var path = context.Request.Path + context.Request.QueryString.ToString();
@@ -63,6 +65,43 @@ namespace KestrelMock
 					await context.Response.WriteAsync(matchResult.Body);
 				}
 			});
+		}
+
+		private void LoadBodyFromFile()
+		{
+			foreach (var mockSettings in _bodyCheckMappings.Values)
+			{
+				foreach (var setting in mockSettings)
+				{
+					UpdateBodyFromFile(setting);
+				}
+			}
+
+			foreach (var mockPathSettings in _pathMappings.Values)
+			{
+				UpdateBodyFromFile(mockPathSettings);
+			}
+
+			foreach (var mockStartsWithSettings in _pathStartsWithMappings.Values)
+			{
+					UpdateBodyFromFile(mockStartsWithSettings);
+			}
+
+		}
+
+		private static void UpdateBodyFromFile(HttpMockSetting setting)
+		{
+			if (!string.IsNullOrEmpty(setting.Response.BodyFromFilePath) && string.IsNullOrEmpty(setting.Response.Body))
+			{
+				if (File.Exists(setting.Response.BodyFromFilePath))
+				{
+					setting.Response.Body = File.ReadAllText(setting.Response.BodyFromFilePath);
+				}
+				else
+				{
+					throw new Exception($"Path in BodyFromFilePath not found {setting.Response.BodyFromFilePath}");
+				}
+			}
 		}
 
 		private Response FindMatches(string path, string body)
