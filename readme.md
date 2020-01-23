@@ -90,6 +90,24 @@ dotnet add package KestrelMock
             ],
             "Body":"BodyDoesNotContain works!!"
          }
+      },
+      {
+         "Request":{
+            "Methods":[
+               "POST",
+               "GET"
+            ],
+            "Path":"/api/fromfile"
+         },
+         "Response":{
+            "Status":200,
+            "Headers":[
+               {
+                  "Content-Type":"application/json"
+               }
+            ],
+            "BodyFromFilePath":".\\TestData\\body.txt"
+         }
       }
    ]
 }
