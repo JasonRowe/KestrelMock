@@ -9,5 +9,7 @@ namespace KestrelMock
 		public List<Dictionary<string, string>> Headers { get; set; }
 
 		public string Body { get; set; }
+
+		public string BodyFromFilePath { get; set; }
 	}
 }

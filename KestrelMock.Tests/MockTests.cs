@@ -76,6 +76,14 @@ namespace KestrelMock.Tests
 			Assert.True(response.Content == "BodyDoesNotContain works!!");
 		}
 
+		[Fact]
+		public void LoadBodyFromRelativePath()
+		{
+			KestrelMock.Run(BuildConfiguration());
+			var response = HttpHelper.Post(HTTP_TEST_HOST + "api/fromfile", "foo");
+			Assert.True(response.Content == "Body loaded from file");
+		}
+
 		private static IConfigurationRoot BuildConfiguration()
 		{
 			return new ConfigurationBuilder()
