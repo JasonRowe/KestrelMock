@@ -62,6 +62,7 @@ namespace KestrelMock
 						}
 					}
 
+					context.Response.StatusCode = matchResult.Status;
 					await context.Response.WriteAsync(matchResult.Body);
 				}
 			});
@@ -84,7 +85,7 @@ namespace KestrelMock
 
 			foreach (var mockStartsWithSettings in _pathStartsWithMappings.Values)
 			{
-					UpdateBodyFromFile(mockStartsWithSettings);
+				UpdateBodyFromFile(mockStartsWithSettings);
 			}
 
 		}
