@@ -33,7 +33,13 @@ namespace KestrelMock
 		public static IWebHostBuilder CreateWebHostBuilder(List<string> Urls, IConfiguration configuration) =>
 			WebHost.CreateDefaultBuilder()
 			.UseConfiguration(configuration)
+			.UseKestrel(options =>
+			{
+				// Work around InvalidOperationException: Synchronous operations are disallowed.
+				// cf. https://stackoverflow.com/questions/47735133/asp-net-core-synchronous-operations-are-disallowed-call-writeasync-or-set-all
+				options.AllowSynchronousIO = true;
+			})
 			.UseUrls(Urls.ToArray())
-				.UseStartup<Startup>();
+			.UseStartup<Startup>();
 	}
 }

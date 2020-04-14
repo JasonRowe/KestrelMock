@@ -1,16 +1,11 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using KestrelMock.Tests.TestHelpers;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace KestrelMock.Tests
 {
-	public class MockTests
+    public class MockTests
 	{
 		private const string HTTP_TEST_HOST = "http://localhost:60000/";
 
@@ -42,6 +37,7 @@ namespace KestrelMock.Tests
 						.Build());
 			var response = HttpHelper.Get(HTTP_TEST_HOST + "starts/with/" + Guid.NewGuid());
 			Assert.Contains("banana_x", response.Content);
+			Assert.Equal(200, (int)response.HttpStatusCode);
 		}
 
 		[Fact]
@@ -50,6 +46,7 @@ namespace KestrelMock.Tests
 			KestrelMock.Run(BuildConfiguration());
 			var response = HttpHelper.Get(HTTP_TEST_HOST + "hello/world");
 			Assert.Contains("hello", response.Content);
+			Assert.Equal(200, (int)response.HttpStatusCode);
 		}
 
 		[Fact]
@@ -58,6 +55,7 @@ namespace KestrelMock.Tests
 			KestrelMock.Run(BuildConfiguration());
 			var response = HttpHelper.Post(HTTP_TEST_HOST + "hello/world");
 			Assert.Contains("hello", response.Content);
+			Assert.Equal(200, (int)response.HttpStatusCode);
 		}
 
 		[Fact]
@@ -66,6 +64,7 @@ namespace KestrelMock.Tests
 			KestrelMock.Run(BuildConfiguration());
 			var response = HttpHelper.Post(HTTP_TEST_HOST + "api/estimate", "00000");
 			Assert.True(response.Content == "BodyContains Works!");
+			Assert.Equal(200, (int)response.HttpStatusCode);
 		}
 
 		[Fact]
@@ -74,6 +73,7 @@ namespace KestrelMock.Tests
 			KestrelMock.Run(BuildConfiguration());
 			var response = HttpHelper.Post(HTTP_TEST_HOST + "api/estimate", "foo");
 			Assert.True(response.Content == "BodyDoesNotContain works!!");
+			Assert.Equal(200, (int)response.HttpStatusCode);
 		}
 
 		[Fact]
@@ -82,6 +82,15 @@ namespace KestrelMock.Tests
 			KestrelMock.Run(BuildConfiguration());
 			var response = HttpHelper.Post(HTTP_TEST_HOST + "api/fromfile", "foo");
 			Assert.True(response.Content == "Body loaded from file");
+			Assert.Equal(200, (int)response.HttpStatusCode);
+		}
+
+		[Fact]
+		public void CanReturnErrorStatus()
+		{
+			KestrelMock.Run(BuildConfiguration());
+			var response = HttpHelper.Post(HTTP_TEST_HOST + "errors/502", "foo");
+			Assert.Equal(502, (int)response.HttpStatusCode);
 		}
 
 		private static IConfigurationRoot BuildConfiguration()
