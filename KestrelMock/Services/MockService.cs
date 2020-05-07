@@ -73,7 +73,8 @@ namespace KestrelMock.Services
                 await context.Response.WriteAsync(matchResult.Body);
             }
 
-            await _next(context);
+            //breakes execution
+            //await _next(context);
         }
 
         private void LoadBodyFromFile()

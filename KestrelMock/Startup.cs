@@ -35,10 +35,6 @@ namespace KestrelMock
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
 		{
 			app.UseMockService();
-			app.Run((context) =>
-			{
-				return Task.CompletedTask;
-			});
 		}
 	}
 }
