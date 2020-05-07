@@ -51,7 +51,7 @@ namespace KestrelMock.Tests
 						.AddJsonFile("appsettings.json", optional: false)
 						.Build());
 			var response = await HttpHelper.GetAsync(HTTP_TEST_HOST + "/test/1234/xyz");
-			Assert.Contains("banana_x", response.Content);
+			Assert.Contains("regex_is_working", response.Content);
 			Assert.Equal(200, (int)response.HttpStatusCode);
 		}
 
