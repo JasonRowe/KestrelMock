@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -46,6 +47,11 @@ namespace KestrelMock.Services
 			}
 
 			var matchResult = FindMatches(path, body);
+
+			if(matchResult is null)
+			{
+				context.Response.StatusCode = (int) HttpStatusCode.NotFound;
+			}
 
 			if (matchResult != null)
 			{

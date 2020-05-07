@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using KestrelMock.Tests.TestHelpers;
 using Microsoft.Extensions.Configuration;
 using Xunit;
@@ -13,7 +14,7 @@ namespace KestrelMock.Tests
 		public void CanStartup()
 		{
 			KestrelMock.Run(BuildConfiguration());
-			Assert.True(HttpHelper.Get(HTTP_TEST_HOST).HttpStatusCode == System.Net.HttpStatusCode.OK);
+			Assert.True(HttpHelper.Get(HTTP_TEST_HOST).HttpStatusCode == System.Net.HttpStatusCode.NotFound);
 		}
 
 		[Fact]
@@ -46,7 +47,7 @@ namespace KestrelMock.Tests
 			KestrelMock.Run(new ConfigurationBuilder()
 						.AddJsonFile("appsettings.json", optional: false)
 						.Build());
-			var response = HttpHelper.Get(HTTP_TEST_HOST + "/test/1234/xyz" + Guid.NewGuid());
+			var response = HttpHelper.Get(HTTP_TEST_HOST + "/test/1234/xyz");
 			Assert.Contains("banana_x", response.Content);
 			Assert.Equal(200, (int)response.HttpStatusCode);
 		}
@@ -57,9 +58,9 @@ namespace KestrelMock.Tests
 			KestrelMock.Run(new ConfigurationBuilder()
 						.AddJsonFile("appsettings.json", optional: false)
 						.Build());
-			var response = HttpHelper.Get(HTTP_TEST_HOST + "/test/abcd/xyz" + Guid.NewGuid());
-			Assert.Contains("banana_x", response.Content);
-			Assert.Equal(200, (int)response.HttpStatusCode);
+			var response = HttpHelper.Get(HTTP_TEST_HOST + "/test/abcd/xyz");
+			
+			Assert.Equal(HttpStatusCode.NotFound, response.HttpStatusCode);
 		}
 
 		[Fact]
