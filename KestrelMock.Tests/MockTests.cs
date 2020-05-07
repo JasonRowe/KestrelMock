@@ -3,6 +3,7 @@ using System.Net;
 using System.Threading.Tasks;
 using KestrelMock.Tests.TestHelpers;
 using Microsoft.Extensions.Configuration;
+using Refit;
 using Xunit;
 
 namespace KestrelMock.Tests
@@ -118,17 +119,22 @@ namespace KestrelMock.Tests
 			Assert.Equal(502, (int)response.HttpStatusCode);
 		}
 
+		[Fact]
+		public async Task KestralMock_works_with_Refit()
+		{
+			KestrelMock.Run(BuildConfiguration());
+
+			var testApi = RestService.For<IKestralMockTestApi>("http://localhost:60000");
+
+			var helloWorld = await testApi.GetHelloWorldWorld();
+
+			Assert.Contains("world", helloWorld.Hello);
+		}
+
 		private static IConfigurationRoot BuildConfiguration()
 		{
 			return new ConfigurationBuilder()
 						.AddJsonFile("appsettings.json", optional: false)
-						.Build();
-		}
-
-		private static IConfigurationRoot BuildBadConfiguration()
-		{
-			return new ConfigurationBuilder()
-						.AddJsonFile("bad.appsettings.json", optional: false)
 						.Build();
 		}
 	}
