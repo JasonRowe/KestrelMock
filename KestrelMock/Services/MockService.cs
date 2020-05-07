@@ -35,7 +35,7 @@ namespace KestrelMock.Services
             if (_pathMappings.IsEmpty && _pathStartsWithMappings.IsEmpty && _bodyCheckMappings.IsEmpty)
             {
                 SetupPathMappings(_mockConfiguration);
-                LoadBodyFromFile();
+                await LoadBodyFromFile();
             }
 
             var path = context.Request.Path + context.Request.QueryString.ToString();
@@ -45,7 +45,7 @@ namespace KestrelMock.Services
             {
                 using (StreamReader reader = new StreamReader(context.Request.Body))
                 {
-                    body = reader.ReadToEnd();
+                    body = await reader.ReadToEndAsync();
                 }
             }
 
@@ -74,38 +74,44 @@ namespace KestrelMock.Services
             }
 
             //breakes execution
-            //await _next(context);
+            //_next(context);
         }
 
-        private void LoadBodyFromFile()
+        private async Task LoadBodyFromFile()
         {
+            List<Task> toBeAwaited = new List<Task>();
             foreach (var mockSettings in _bodyCheckMappings.Values)
             {
                 foreach (var setting in mockSettings)
                 {
-                    UpdateBodyFromFile(setting);
+                    toBeAwaited.Add(UpdateBodyFromFile(setting));
                 }
             }
 
             foreach (var mockPathSettings in _pathMappings.Values)
             {
-                UpdateBodyFromFile(mockPathSettings);
+                toBeAwaited.Add(UpdateBodyFromFile(mockPathSettings));
             }
 
             foreach (var mockStartsWithSettings in _pathStartsWithMappings.Values)
             {
-                UpdateBodyFromFile(mockStartsWithSettings);
+                toBeAwaited.Add(UpdateBodyFromFile(mockStartsWithSettings));
             }
+
+            await Task.WhenAll(toBeAwaited);
 
         }
 
-        private void UpdateBodyFromFile(HttpMockSetting setting)
+        private async Task UpdateBodyFromFile(HttpMockSetting setting)
         {
             if (!string.IsNullOrEmpty(setting.Response.BodyFromFilePath) && string.IsNullOrEmpty(setting.Response.Body))
             {
                 if (File.Exists(setting.Response.BodyFromFilePath))
                 {
-                    setting.Response.Body = File.ReadAllText(setting.Response.BodyFromFilePath);
+                    using (var reader = File.OpenText(setting.Response.BodyFromFilePath))
+                    {
+                        setting.Response.Body = await reader.ReadToEndAsync();
+                    }
                 }
                 else
                 {
