@@ -13,5 +13,7 @@ namespace KestrelMock
 		public string BodyContains { get; set; }
 
 		public string BodyDoesNotContain { get; set; }
+
+		public string PathMatchesRegex { get; set; }
 	}
 }

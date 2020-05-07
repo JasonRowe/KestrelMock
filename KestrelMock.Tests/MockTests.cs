@@ -41,6 +41,28 @@ namespace KestrelMock.Tests
 		}
 
 		[Fact]
+		public void CanMockResponseUsingPathRegex_Matches()
+		{
+			KestrelMock.Run(new ConfigurationBuilder()
+						.AddJsonFile("appsettings.json", optional: false)
+						.Build());
+			var response = HttpHelper.Get(HTTP_TEST_HOST + "/test/1234/xyz" + Guid.NewGuid());
+			Assert.Contains("banana_x", response.Content);
+			Assert.Equal(200, (int)response.HttpStatusCode);
+		}
+
+		[Fact]
+		public void CanMockResponseUsingPathRegex_NoMatch()
+		{
+			KestrelMock.Run(new ConfigurationBuilder()
+						.AddJsonFile("appsettings.json", optional: false)
+						.Build());
+			var response = HttpHelper.Get(HTTP_TEST_HOST + "/test/abcd/xyz" + Guid.NewGuid());
+			Assert.Contains("banana_x", response.Content);
+			Assert.Equal(200, (int)response.HttpStatusCode);
+		}
+
+		[Fact]
 		public void CanMockGetResponseUsingExactPath()
 		{
 			KestrelMock.Run(BuildConfiguration());
