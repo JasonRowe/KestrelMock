@@ -1,31 +1,36 @@
 ﻿using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace KestrelMock.Tests.TestHelpers
 {
 	public static class HttpHelper
 	{
-		public static StatusCodeAndContent Get(string url)
+		private static HttpClient httpClient = new HttpClient();
+
+		public static async Task<StatusCodeAndContent> GetAsync(string url)
 		{
-			var httpClient = new HttpClient();
-			var response = httpClient.GetAsync(url).Result;
-			var content = response.Content.ReadAsStringAsync().Result;
-			return new StatusCodeAndContent
+			using (var response = await httpClient.GetAsync(url))
 			{
-				Content = content,
-				HttpStatusCode = response.StatusCode,
-			};
+				var content = await response.Content.ReadAsStringAsync();
+				return new StatusCodeAndContent
+				{
+					Content = content,
+					HttpStatusCode = response.StatusCode,
+				};
+			}
 		}
 
-		public static StatusCodeAndContent Post(string url, string postContent = "")
+		public static async Task<StatusCodeAndContent> PostAsync(string url, string postContent = "")
 		{
-			var httpClient = new HttpClient();
-			var response = httpClient.PostAsync(url, new StringContent(postContent)).Result;
-			var content = response.Content.ReadAsStringAsync().Result;
-			return new StatusCodeAndContent
+			using (var response = await httpClient.PostAsync(url, new StringContent(postContent)))
 			{
-				Content = content,
-				HttpStatusCode = response.StatusCode,
-			};
+				var content = await response.Content.ReadAsStringAsync();
+				return new StatusCodeAndContent
+				{
+					Content = content,
+					HttpStatusCode = response.StatusCode,
+				};
+			}
 		}
 	}
 }

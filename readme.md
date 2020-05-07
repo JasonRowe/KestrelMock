@@ -38,6 +38,21 @@ dotnet add package KestrelMock
          }
       },
       {
+         "Request": {
+            "Methods": [ "GET" ],
+            "PathMatchesRegex": ".+\\d{4}.+"
+         },
+         "Response": {
+            "Status": 200,
+            "Headers": [
+               {
+                  "Content-Type": "application/json"
+               }
+            ],
+            "Body": "{\"banana_x\": 8000}"
+         }
+      },
+      {
          "Request":{
             "Methods":[
                "POST",
