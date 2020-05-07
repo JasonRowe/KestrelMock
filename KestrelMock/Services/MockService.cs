@@ -70,7 +70,12 @@ namespace KestrelMock.Services
                 }
 
                 context.Response.StatusCode = matchResult.Status;
-                await context.Response.WriteAsync(matchResult.Body);
+
+                if (!string.IsNullOrWhiteSpace(matchResult.Body))
+                {
+                    await context.Response.WriteAsync(matchResult.Body);
+                }
+                
             }
 
             //breakes execution
