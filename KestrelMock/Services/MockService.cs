@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
@@ -7,8 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -21,7 +18,6 @@ namespace KestrelMock.Services
         private ConcurrentDictionary<string, List<HttpMockSetting>> _bodyCheckMappings;
         private ConcurrentDictionary<Regex, HttpMockSetting> _pathMatchesRegex;
         private readonly MockConfiguration _mockConfiguration;
-
         private readonly RequestDelegate _next;
 
         public MockService(IOptions<MockConfiguration> options, RequestDelegate next)
