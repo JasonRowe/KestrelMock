@@ -28,14 +28,16 @@ namespace KestrelMock
 
 		public void ConfigureServices(IServiceCollection services)
 		{
-			//
+			services.AddSingleton<MockService>();
+			services.Configure<MockConfiguration>(configuration.GetSection("MockSettings"));
 		}
 
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
 		{
-			app.Run(async (context) =>
+			app.UseMockService();
+			app.Run((context) =>
 			{
-				await MockService.MockPipeline(context, configuration);
+				return Task.CompletedTask;
 			});
 		}
 	}

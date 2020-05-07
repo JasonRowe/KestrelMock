@@ -1,211 +1,217 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace KestrelMock.Services
 {
-    public static class MockService
+    public class MockService
     {
-		private static ConcurrentDictionary<string, HttpMockSetting> _pathMappings;
-		private static ConcurrentDictionary<string, HttpMockSetting> _pathStartsWithMappings;
-		private static ConcurrentDictionary<string, List<HttpMockSetting>> _bodyCheckMappings;
-		private static ConcurrentDictionary<Regex, HttpMockSetting> _pathMatchesRegex;
+        private ConcurrentDictionary<string, HttpMockSetting> _pathMappings;
+        private ConcurrentDictionary<string, HttpMockSetting> _pathStartsWithMappings;
+        private ConcurrentDictionary<string, List<HttpMockSetting>> _bodyCheckMappings;
+        private ConcurrentDictionary<Regex, HttpMockSetting> _pathMatchesRegex;
+        private readonly MockConfiguration _mockConfiguration;
 
-		static MockService()
-		{
-			_pathMappings = new ConcurrentDictionary<string, HttpMockSetting>();
-			_pathStartsWithMappings = new ConcurrentDictionary<string, HttpMockSetting>();
-			_bodyCheckMappings = new ConcurrentDictionary<string, List<HttpMockSetting>>();
-			_pathMatchesRegex = new ConcurrentDictionary<Regex, HttpMockSetting>();
-		}
+        private readonly RequestDelegate _next;
 
-		public static async Task MockPipeline(HttpContext context, IConfiguration configuration)
-		{
-			if (_pathMappings.IsEmpty && _pathStartsWithMappings.IsEmpty && _bodyCheckMappings.IsEmpty)
-			{
-				SetupPathMappings(configuration);
-				LoadBodyFromFile();
-			}
+        public MockService(IOptions<MockConfiguration> options, RequestDelegate next)
+        {
+            _pathMappings = new ConcurrentDictionary<string, HttpMockSetting>();
+            _pathStartsWithMappings = new ConcurrentDictionary<string, HttpMockSetting>();
+            _bodyCheckMappings = new ConcurrentDictionary<string, List<HttpMockSetting>>();
+            _pathMatchesRegex = new ConcurrentDictionary<Regex, HttpMockSetting>();
+            _mockConfiguration = options.Value;
+            _next = next;
+        }
 
-			var path = context.Request.Path + context.Request.QueryString.ToString();
-			string body = null;
+        public async Task Invoke(HttpContext context)
+        {
+            if (_pathMappings.IsEmpty && _pathStartsWithMappings.IsEmpty && _bodyCheckMappings.IsEmpty)
+            {
+                SetupPathMappings(_mockConfiguration);
+                LoadBodyFromFile();
+            }
 
-			if (context.Request.Body != null)
-			{
-				using (StreamReader reader = new StreamReader(context.Request.Body))
-				{
-					body = reader.ReadToEnd();
-				}
-			}
+            var path = context.Request.Path + context.Request.QueryString.ToString();
+            string body = null;
 
-			var matchResult = FindMatches(path, body);
+            if (context.Request.Body != null)
+            {
+                using (StreamReader reader = new StreamReader(context.Request.Body))
+                {
+                    body = reader.ReadToEnd();
+                }
+            }
 
-			if(matchResult is null)
-			{
-				context.Response.StatusCode = (int) HttpStatusCode.NotFound;
-			}
+            var matchResult = FindMatches(path, body);
 
-			if (matchResult != null)
-			{
-				if (matchResult.Headers != null || !matchResult.Headers.Any())
-				{
-					foreach (var header in matchResult.Headers)
-					{
-						foreach (var key in header.Keys)
-						{
-							context.Response.Headers.Add(key, header[key]);
-						}
-					}
-				}
+            if (matchResult is null)
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            }
 
-				context.Response.StatusCode = matchResult.Status;
-				await context.Response.WriteAsync(matchResult.Body);
-			}
-		}
+            if (matchResult != null)
+            {
+                if (matchResult.Headers != null || !matchResult.Headers.Any())
+                {
+                    foreach (var header in matchResult.Headers)
+                    {
+                        foreach (var key in header.Keys)
+                        {
+                            context.Response.Headers.Add(key, header[key]);
+                        }
+                    }
+                }
 
-		private static void LoadBodyFromFile()
-		{
-			foreach (var mockSettings in _bodyCheckMappings.Values)
-			{
-				foreach (var setting in mockSettings)
-				{
-					UpdateBodyFromFile(setting);
-				}
-			}
+                context.Response.StatusCode = matchResult.Status;
+                await context.Response.WriteAsync(matchResult.Body);
+            }
 
-			foreach (var mockPathSettings in _pathMappings.Values)
-			{
-				UpdateBodyFromFile(mockPathSettings);
-			}
+            await _next(context);
+        }
 
-			foreach (var mockStartsWithSettings in _pathStartsWithMappings.Values)
-			{
-				UpdateBodyFromFile(mockStartsWithSettings);
-			}
+        private void LoadBodyFromFile()
+        {
+            foreach (var mockSettings in _bodyCheckMappings.Values)
+            {
+                foreach (var setting in mockSettings)
+                {
+                    UpdateBodyFromFile(setting);
+                }
+            }
 
-		}
+            foreach (var mockPathSettings in _pathMappings.Values)
+            {
+                UpdateBodyFromFile(mockPathSettings);
+            }
 
-		private static void UpdateBodyFromFile(HttpMockSetting setting)
-		{
-			if (!string.IsNullOrEmpty(setting.Response.BodyFromFilePath) && string.IsNullOrEmpty(setting.Response.Body))
-			{
-				if (File.Exists(setting.Response.BodyFromFilePath))
-				{
-					setting.Response.Body = File.ReadAllText(setting.Response.BodyFromFilePath);
-				}
-				else
-				{
-					throw new Exception($"Path in BodyFromFilePath not found {setting.Response.BodyFromFilePath}");
-				}
-			}
-		}
+            foreach (var mockStartsWithSettings in _pathStartsWithMappings.Values)
+            {
+                UpdateBodyFromFile(mockStartsWithSettings);
+            }
 
-		private static Response FindMatches(string path, string body)
-		{
-			Response result = null;
+        }
 
-			if (_pathMappings.ContainsKey(path))
-			{
-				result = _pathMappings[path].Response;
-			}
+        private void UpdateBodyFromFile(HttpMockSetting setting)
+        {
+            if (!string.IsNullOrEmpty(setting.Response.BodyFromFilePath) && string.IsNullOrEmpty(setting.Response.Body))
+            {
+                if (File.Exists(setting.Response.BodyFromFilePath))
+                {
+                    setting.Response.Body = File.ReadAllText(setting.Response.BodyFromFilePath);
+                }
+                else
+                {
+                    throw new Exception($"Path in BodyFromFilePath not found {setting.Response.BodyFromFilePath}");
+                }
+            }
+        }
 
-			if (result == null && _pathStartsWithMappings != null)
-			{
-				foreach (var pathStart in _pathStartsWithMappings)
-				{
-					if (path.StartsWith(pathStart.Key))
-					{
-						result = pathStart.Value.Response;
-					}
-				}
-			}
+        private Response FindMatches(string path, string body)
+        {
+            Response result = null;
 
-			if (result == null && _pathMatchesRegex != null)
-			{
-				foreach (var pathRegex in _pathMatchesRegex)
-				{
-					if (pathRegex.Key.IsMatch(path))
-					{
-						result = pathRegex.Value.Response;
-					}
-				}
-			}
+            if (_pathMappings.ContainsKey(path))
+            {
+                result = _pathMappings[path].Response;
+            }
 
-			if (result == null && _bodyCheckMappings != null && _bodyCheckMappings.ContainsKey(path))
-			{
-				var possibleResults = _bodyCheckMappings[path];
+            if (result == null && _pathStartsWithMappings != null)
+            {
+                foreach (var pathStart in _pathStartsWithMappings)
+                {
+                    if (path.StartsWith(pathStart.Key))
+                    {
+                        result = pathStart.Value.Response;
+                    }
+                }
+            }
 
-				foreach (var possibleResult in possibleResults)
-				{
-					if (!string.IsNullOrEmpty(possibleResult.Request.BodyContains))
-					{
-						if (body.Contains(possibleResult.Request.BodyContains))
-						{
-							result = possibleResult.Response;
-						}
-					}
-					else if (!string.IsNullOrEmpty(possibleResult.Request.BodyDoesNotContain))
-					{
-						if (!body.Contains(possibleResult.Request.BodyDoesNotContain))
-						{
-							result = possibleResult.Response;
-						}
-					}
-				}
-			}
+            if (result == null && _pathMatchesRegex != null)
+            {
+                foreach (var pathRegex in _pathMatchesRegex)
+                {
+                    if (pathRegex.Key.IsMatch(path))
+                    {
+                        result = pathRegex.Value.Response;
+                    }
+                }
+            }
 
-			return result;
-		}
+            if (result == null && _bodyCheckMappings != null && _bodyCheckMappings.ContainsKey(path))
+            {
+                var possibleResults = _bodyCheckMappings[path];
 
-		private static void SetupPathMappings(IConfiguration configuration)
-		{
-			var mockSettingsConfigSection = configuration.GetSection("MockSettings");
-			var httpMockSettings = mockSettingsConfigSection.Get<List<HttpMockSetting>>();
+                foreach (var possibleResult in possibleResults)
+                {
+                    if (!string.IsNullOrEmpty(possibleResult.Request.BodyContains))
+                    {
+                        if (body.Contains(possibleResult.Request.BodyContains))
+                        {
+                            result = possibleResult.Response;
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(possibleResult.Request.BodyDoesNotContain))
+                    {
+                        if (!body.Contains(possibleResult.Request.BodyDoesNotContain))
+                        {
+                            result = possibleResult.Response;
+                        }
+                    }
+                }
+            }
 
-			if (httpMockSettings == null || !httpMockSettings.Any())
-			{
-				return;
-			}
+            return result;
+        }
 
-			foreach (var httpMockSetting in httpMockSettings)
-			{
-				if (!string.IsNullOrEmpty(httpMockSetting.Request.Path))
-				{
-					if (!string.IsNullOrEmpty(httpMockSetting.Request.BodyContains) || !string.IsNullOrEmpty(httpMockSetting.Request.BodyDoesNotContain))
-					{
-						if (_bodyCheckMappings.ContainsKey(httpMockSetting.Request.Path))
-						{
-							var bodyContainesList = _bodyCheckMappings[httpMockSetting.Request.Path];
-							bodyContainesList.Add(httpMockSetting);
-						}
-						else
-						{
-							_bodyCheckMappings.TryAdd(httpMockSetting.Request.Path, new List<HttpMockSetting> { httpMockSetting });
-						}
-					}
-					else
-					{
-						_pathMappings.TryAdd(httpMockSetting.Request.Path, httpMockSetting);
-					}
-				}
-				else if (!string.IsNullOrEmpty(httpMockSetting.Request.PathStartsWith))
-				{
-					_pathStartsWithMappings.TryAdd(httpMockSetting.Request.PathStartsWith, httpMockSetting);
-				}
-				else if (!string.IsNullOrWhiteSpace(httpMockSetting.Request.PathMatchesRegex))
-				{
-					var regex = new Regex(httpMockSetting.Request.PathMatchesRegex, RegexOptions.Compiled);
-					_pathMatchesRegex.TryAdd(regex, httpMockSetting);
-				}
-			}
-		}
-	}
+        private void SetupPathMappings(MockConfiguration httpMockSettings)
+        {
+            if (httpMockSettings == null || !httpMockSettings.Any())
+            {
+                return;
+            }
+
+            foreach (var httpMockSetting in httpMockSettings)
+            {
+                if (!string.IsNullOrEmpty(httpMockSetting.Request.Path))
+                {
+                    if (!string.IsNullOrEmpty(httpMockSetting.Request.BodyContains) || !string.IsNullOrEmpty(httpMockSetting.Request.BodyDoesNotContain))
+                    {
+                        if (_bodyCheckMappings.ContainsKey(httpMockSetting.Request.Path))
+                        {
+                            var bodyContainesList = _bodyCheckMappings[httpMockSetting.Request.Path];
+                            bodyContainesList.Add(httpMockSetting);
+                        }
+                        else
+                        {
+                            _bodyCheckMappings.TryAdd(httpMockSetting.Request.Path, new List<HttpMockSetting> { httpMockSetting });
+                        }
+                    }
+                    else
+                    {
+                        _pathMappings.TryAdd(httpMockSetting.Request.Path, httpMockSetting);
+                    }
+                }
+                else if (!string.IsNullOrEmpty(httpMockSetting.Request.PathStartsWith))
+                {
+                    _pathStartsWithMappings.TryAdd(httpMockSetting.Request.PathStartsWith, httpMockSetting);
+                }
+                else if (!string.IsNullOrWhiteSpace(httpMockSetting.Request.PathMatchesRegex))
+                {
+                    var regex = new Regex(httpMockSetting.Request.PathMatchesRegex, RegexOptions.Compiled);
+                    _pathMatchesRegex.TryAdd(regex, httpMockSetting);
+                }
+            }
+        }
+    }
 }
