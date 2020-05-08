@@ -103,6 +103,11 @@ namespace KestrelMock.Services
                 toBeAwaited.Add(UpdateBodyFromFile(mockStartsWithSettings));
             }
 
+            foreach (var mockRegexSettings in _pathMatchesRegex.Values)
+            {
+                toBeAwaited.Add(UpdateBodyFromFile(mockRegexSettings));
+            }
+
             await Task.WhenAll(toBeAwaited);
 
         }
