@@ -1,4 +1,5 @@
-# Kestrel Mock
+# Kestrel Mock  ![.NET Core](https://github.com/JasonRowe/KestrelMock/workflows/.NET%20Core/badge.svg?branch=master)
+
 
 A .Net Core HTTP mock server.
 
