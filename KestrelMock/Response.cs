@@ -12,5 +12,7 @@ namespace KestrelMock
 		public string Body { get; set; }
 
 		public string BodyFromFilePath { get; set; }
+
+		public Dictionary<string,string> ReplaceDictionary { get; set; }
 	}
 }

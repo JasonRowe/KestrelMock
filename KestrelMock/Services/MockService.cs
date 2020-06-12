@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection.Metadata;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -49,7 +51,7 @@ namespace KestrelMock.Services
                 }
             }
 
-            var matchResult = FindMatches(path, body);
+            var matchResult = FindMatchingResponseMock(path, body);
 
             if (matchResult is null)
             {
@@ -73,14 +75,43 @@ namespace KestrelMock.Services
 
                 if (!string.IsNullOrWhiteSpace(matchResult.Body))
                 {
-                    await context.Response.WriteAsync(matchResult.Body);
+
+                    string resultBody = matchResult.Body;
+
+                    if (matchResult.ReplaceDictionary?.Any() == true)
+                    {
+                        
+                        foreach(var keyVal in matchResult.ReplaceDictionary)
+                        {
+                            var pathRegexMatch = Regex.Match(path, keyVal.Value);
+
+                            if (pathRegexMatch.Success)
+                            {
+                                var regex = "\":\\s*\"(?<field>[\\w\\d]+)\"}";
+                                var relaceRegex = new Regex(keyVal.Key + regex, RegexOptions.Compiled);
+
+                                var replacement = pathRegexMatch.Groups.Count == 2 ?
+                                    pathRegexMatch.Groups[1].Value : pathRegexMatch.Value;
+
+                                if (!relaceRegex.IsMatch(matchResult.Body))
+                                {
+                                    throw new Exception("no match");
+                                }
+
+                                resultBody = relaceRegex.ReplaceGroup(matchResult.Body, "field", replacement);
+                            }
+                        }
+                    }
+
+                    await context.Response.WriteAsync(resultBody);
                 }
                 
             }
 
             //breakes execution
-            //_next(context);
+            //await _next(context);
         }
+
 
         private async Task LoadBodyFromFile()
         {
@@ -89,30 +120,30 @@ namespace KestrelMock.Services
             {
                 foreach (var setting in mockSettings)
                 {
-                    toBeAwaited.Add(UpdateBodyFromFile(setting));
+                    toBeAwaited.Add(ReadBodyFromFile(setting));
                 }
             }
 
             foreach (var mockPathSettings in _pathMappings.Values)
             {
-                toBeAwaited.Add(UpdateBodyFromFile(mockPathSettings));
+                toBeAwaited.Add(ReadBodyFromFile(mockPathSettings));
             }
 
             foreach (var mockStartsWithSettings in _pathStartsWithMappings.Values)
             {
-                toBeAwaited.Add(UpdateBodyFromFile(mockStartsWithSettings));
+                toBeAwaited.Add(ReadBodyFromFile(mockStartsWithSettings));
             }
 
             foreach (var mockRegexSettings in _pathMatchesRegex.Values)
             {
-                toBeAwaited.Add(UpdateBodyFromFile(mockRegexSettings));
+                toBeAwaited.Add(ReadBodyFromFile(mockRegexSettings));
             }
 
             await Task.WhenAll(toBeAwaited);
 
         }
 
-        private async Task UpdateBodyFromFile(HttpMockSetting setting)
+        private async Task ReadBodyFromFile(HttpMockSetting setting)
         {
             if (!string.IsNullOrEmpty(setting.Response.BodyFromFilePath) && string.IsNullOrEmpty(setting.Response.Body))
             {
@@ -120,7 +151,8 @@ namespace KestrelMock.Services
                 {
                     using (var reader = File.OpenText(setting.Response.BodyFromFilePath))
                     {
-                        setting.Response.Body = await reader.ReadToEndAsync();
+                        var bodyFromFile = await reader.ReadToEndAsync();
+                        setting.Response.Body = bodyFromFile;
                     }
                 }
                 else
@@ -130,7 +162,7 @@ namespace KestrelMock.Services
             }
         }
 
-        private Response FindMatches(string path, string body)
+        private Response FindMatchingResponseMock(string path, string body)
         {
             Response result = null;
 
@@ -227,4 +259,36 @@ namespace KestrelMock.Services
             }
         }
     }
+
+    public static class RegexExtensions
+    {
+        public static string ReplaceGroup(
+            this Regex regex, string input, string groupName, string replacement)
+        {
+            return regex.Replace(
+                input,
+                m =>
+                {
+                    var group = m.Groups[groupName];
+                    var sb = new StringBuilder();
+                    var previousCaptureEnd = 0;
+                    foreach (var capture in group.Captures.Cast<Capture>())
+                    {
+                        var currentCaptureEnd =
+                            capture.Index + capture.Length - m.Index;
+                        var currentCaptureLength =
+                            capture.Index - m.Index - previousCaptureEnd;
+                        sb.Append(
+                            m.Value.Substring(
+                                previousCaptureEnd, currentCaptureLength));
+                        sb.Append(replacement);
+                        previousCaptureEnd = currentCaptureEnd;
+                    }
+                    sb.Append(m.Value.Substring(previousCaptureEnd));
+
+                    return sb.ToString();
+                });
+        }
+    }
+
 }

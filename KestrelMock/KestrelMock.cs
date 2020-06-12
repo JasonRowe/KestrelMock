@@ -27,7 +27,7 @@ namespace KestrelMock
 				throw new Exception("Configuration must include 'MockSettings' section");
 			}
 
-			CreateWebHostBuilder(urls, configuration).Build().RunAsync();
+			CreateWebHostBuilder(urls, configuration).Build().Run();
 		}
 
 		public static IWebHostBuilder CreateWebHostBuilder(List<string> Urls, IConfiguration configuration) =>

@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using KestrelMock.Tests.TestHelpers;
 using Microsoft.Extensions.Configuration;
@@ -8,17 +9,8 @@ using Xunit;
 
 namespace KestrelMock.Tests
 {
-	public class MockTests
+    public class MockTests : IClassFixture<MockTestApplicationFactory>
 	{
-		private const string HTTP_TEST_HOST = "http://localhost:60000/";
-
-		[Fact]
-		public async Task CanStartup()
-		{
-			KestrelMock.Run(BuildConfiguration());
-			var response = await HttpHelper.GetAsync(HTTP_TEST_HOST);
-			Assert.True(response.HttpStatusCode == HttpStatusCode.NotFound);
-		}
 
 		[Fact]
 		public void ValidateConfiguration()
@@ -33,109 +25,148 @@ namespace KestrelMock.Tests
 			}
 		}
 
-		[Fact]
-		public async Task CanMockResponseUsingPathStartsWith()
+		private readonly MockTestApplicationFactory _factory;
+
+		public MockTests(MockTestApplicationFactory factory)
 		{
-			KestrelMock.Run(new ConfigurationBuilder()
-						.AddJsonFile("appsettings.json", optional: false)
-						.Build());
-			var response = await HttpHelper.GetAsync(HTTP_TEST_HOST + "starts/with/" + Guid.NewGuid());
-			Assert.Contains("banana_x", response.Content);
-			Assert.Equal(200, (int)response.HttpStatusCode);
+			_factory = factory;
 		}
 
-		[Fact]
-		public async Task CanMockResponseUsingPathRegex_Matches()
+		[Theory]
+		[InlineData("starts/with/xhsythf")]
+		public async Task CanMockResponseUsingPathStartsWith(string url)
 		{
-			KestrelMock.Run(new ConfigurationBuilder()
-						.AddJsonFile("appsettings.json", optional: false)
-						.Build());
-			var response = await HttpHelper.GetAsync(HTTP_TEST_HOST + "/test/1234/xyz");
-			Assert.Contains("banana_x", response.Content);
-			Assert.Equal(200, (int)response.HttpStatusCode);
+
+			// Arrange
+			var client = _factory.CreateClient();
+
+			// Act
+			var response = await client.GetAsync(url);
+
+			// Assert
+			response.EnsureSuccessStatusCode(); // Status Code 200-299
+
+			var message = await response.Content.ReadAsStringAsync();
+			Assert.Contains("banana_x", message);
+		}
+
+		[Theory]
+		[InlineData("/test/1234/xyz")]
+		public async Task CanMockResponseUsingPathRegex_Matches(string url)
+		{
+
+			// Arrange
+			var client = _factory.CreateClient();
+
+			// Act
+			var response = await client.GetAsync(url);
+
+			// Assert
+			response.EnsureSuccessStatusCode(); // Status Code 200-299
+
+			var message = await response.Content.ReadAsStringAsync();
+			Assert.Contains("banana_x", message);
 		}
 
 		[Fact]
 		public async Task CanMockResponseUsingPathRegex_NoMatch()
 		{
-			KestrelMock.Run(new ConfigurationBuilder()
-						.AddJsonFile("appsettings.json", optional: false)
-						.Build());
-			var response = await HttpHelper.GetAsync(HTTP_TEST_HOST + "/test/abcd/xyz");
+			// Arrange
+			var client = _factory.CreateClient();
+
+			// Act
+			var response = await client.GetAsync("/test/abcd/xyz");
 			
-			Assert.Equal(HttpStatusCode.NotFound, response.HttpStatusCode);
+			Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 		}
 
 		[Fact]
 		public async Task CanMockGetResponseUsingExactPath()
 		{
-			KestrelMock.Run(BuildConfiguration());
-			var response = await HttpHelper.GetAsync(HTTP_TEST_HOST + "hello/world");
-			Assert.Contains("hello", response.Content);
-			Assert.Equal(200, (int)response.HttpStatusCode);
+			var client = _factory.CreateClient();
+
+			var response = await client.GetAsync("hello/world");
+
+			Assert.Contains("hello", await response.Content.ReadAsStringAsync());
+			Assert.Equal(200, (int)response.StatusCode);
 		}
 
 		[Fact]
 		public async Task CanMockPosttResponseUsingExactPath()
 		{
-			KestrelMock.Run(BuildConfiguration());
-			var response = await HttpHelper.PostAsync(HTTP_TEST_HOST + "hello/world");
-			Assert.Contains("hello", response.Content);
-			Assert.Equal(200, (int)response.HttpStatusCode);
+			var client = _factory.CreateClient();
+
+			var response = await client.PostAsync("hello/world", new StringContent("test"));
+
+			Assert.Contains("hello", await response.Content.ReadAsStringAsync());
+			Assert.Equal(200, (int)response.StatusCode);
 		}
 
 		[Fact]
 		public async Task CanMockBodyContainsResponse()
 		{
-			KestrelMock.Run(BuildConfiguration());
-			var response = await HttpHelper.PostAsync(HTTP_TEST_HOST + "api/estimate", "00000");
-			Assert.True(response.Content == "BodyContains Works!");
-			Assert.Equal(200, (int)response.HttpStatusCode);
+			var client = _factory.CreateClient();
+			var response = await client.PostAsync("api/estimate", new StringContent("00000"));
+
+			Assert.Contains("BodyContains Works!", await response.Content.ReadAsStringAsync());
+			Assert.Equal(200, (int)response.StatusCode);
+		}
+
+		[Theory]
+		[InlineData("BANANA")]
+		public async Task CanReplaceBodyFromUri(string arg)
+		{
+			var client = _factory.CreateClient();
+			var response = await client.GetAsync($"/test/regex/replace/{arg}");
+
+			Assert.Equal($"{{\"hello\": \"{arg}\"}}", await response.Content.ReadAsStringAsync());
+			Assert.Equal(200, (int)response.StatusCode);
 		}
 
 		[Fact]
 		public async Task CanMockBodyDoesNotContainsResponse()
 		{
-			KestrelMock.Run(BuildConfiguration());
-			var response = await HttpHelper.PostAsync(HTTP_TEST_HOST + "api/estimate", "foo");
-			Assert.True(response.Content == "BodyDoesNotContain works!!");
-			Assert.Equal(200, (int)response.HttpStatusCode);
+			var client = _factory.CreateClient();
+			var response = await client.PostAsync("api/estimate", new StringContent("foo"));
+
+			Assert.Contains("BodyDoesNotContain works!", await response.Content.ReadAsStringAsync());
+			Assert.Equal(200, (int)response.StatusCode);
 		}
 
 		[Fact]
 		public async Task LoadBodyFromRelativePath()
 		{
-			KestrelMock.Run(BuildConfiguration());
-			var response = await HttpHelper.PostAsync(HTTP_TEST_HOST + "api/fromfile", "foo");
-			Assert.True(response.Content == "Body loaded from file");
-			Assert.Equal(200, (int)response.HttpStatusCode);
+			var client = _factory.CreateClient();
+			var response = await client.PostAsync("api/fromfile", new StringContent(""));
+
+			// note: to work on all os, you should specify body from file only in unix-compliant relative path
+			// so : ./this/path/file.x and not like .\\this\\file.windows
+
+			var content = await response.Content.ReadAsStringAsync();
+
+			Assert.True(content == "Body loaded from file");
+			Assert.Equal(200, (int)response.StatusCode);
 		}
 
 		[Fact]
 		public async Task CanReturnErrorStatus()
 		{
-			KestrelMock.Run(BuildConfiguration());
-			var response = await HttpHelper.PostAsync(HTTP_TEST_HOST + "errors/502", "foo");
-			Assert.Equal(502, (int)response.HttpStatusCode);
+			var client = _factory.CreateClient();
+			var response = await client.PostAsync("errors/502", new StringContent("foo"));
+
+			Assert.Equal(502, (int)response.StatusCode);
 		}
 
 		[Fact]
 		public async Task KestralMock_works_with_Refit()
 		{
-			KestrelMock.Run(BuildConfiguration());
+			var client = _factory.CreateClient();
 
-			var testApi = RestService.For<IKestralMockTestApi>("http://localhost:60000");
+			var testApi = RestService.For<IKestralMockTestApi>(client);
 
 			var helloWorld = await testApi.GetHelloWorldWorld();
 
 			Assert.Contains("world", helloWorld.Hello);
-		}
-
-		private static IConfigurationRoot BuildConfiguration()
-		{
-			return new ConfigurationBuilder()
-						.AddJsonFile("appsettings.json", optional: false)
-						.Build();
 		}
 	}
 }
