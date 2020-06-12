@@ -113,13 +113,13 @@ namespace KestrelMock.Tests
 		}
 
 		[Theory]
-		[InlineData("BANANA")]
-		public async Task CanReplaceBodyFromUri(string arg)
+		[InlineData("BANANA", "SPLIT")]
+		public async Task CanReplaceBodyFromUri(string order, string product)
 		{
 			var client = _factory.CreateClient();
-			var response = await client.GetAsync($"/test/regex/replace/{arg}");
+			var response = await client.GetAsync($"/api/orders/{order}/{product}");
 
-			Assert.Equal($"{{\"hello\": \"{arg}\"}}", await response.Content.ReadAsStringAsync());
+			Assert.Equal($"{{\"order\":\"{order}\",\"product\":\"{product}\"}}", await response.Content.ReadAsStringAsync());
 			Assert.Equal(200, (int)response.StatusCode);
 		}
 
