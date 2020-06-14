@@ -129,7 +129,7 @@ namespace KestrelMock.Tests
         {
             var client = _factory.CreateClient();
 
-            var response = await client.GetAsync($"/api/wines/{wine}/{color}");
+            var response = await client.GetAsync($"/api/wines/{wine}/{color}?extra=notNeeded");
 
             var body = await response.Content.ReadAsStringAsync();
 

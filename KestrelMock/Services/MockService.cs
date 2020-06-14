@@ -184,6 +184,8 @@ namespace KestrelMock.Services
                                         .Replace(match.Value, $"(?<{match.Groups["parameter"].Value}>[^{{}}?]*)");
                         }
 
+                        parameterRegexString = $"{parameterRegexString}/??.+?";
+
                         var matchesOnUri = Regex.Match(path, parameterRegexString);
 
                         foreach (var keyVal in matchResult.Replace.UriPathReplacements)
