@@ -124,12 +124,13 @@ namespace KestrelMock.Tests
         }
 
         [Theory]
-        [InlineData("CHIANTI", "RED")]
-        public async Task CanReplaceBodyFromUriWithUriParameters(string wine, string color)
+        [InlineData("CHIANTI", "RED", ""),
+        InlineData("CHIANTI", "RED", "?text=2")]
+        public async Task CanReplaceBodyFromUriWithUriParameters(string wine, string color, string extraQuery)
         {
             var client = _factory.CreateClient();
 
-            var response = await client.GetAsync($"/api/wines/{wine}/{color}?extra=notNeeded");
+            var response = await client.GetAsync($"/api/wines/{wine}/{color}{extraQuery}");
 
             var body = await response.Content.ReadAsStringAsync();
 
