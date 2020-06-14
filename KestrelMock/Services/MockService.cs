@@ -168,7 +168,7 @@ namespace KestrelMock.Services
                     {
                         foreach (var keyVal in matchResult.Replace.BodyReplacements)
                         {
-                            resultBody = JsonBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
+                            resultBody = RegexBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
                         }
                     }
 
@@ -197,12 +197,12 @@ namespace KestrelMock.Services
                                 if (matchesOnUri.Groups[parameterToReplace] != null)
                                 {
                                     var valueToReplace = matchesOnUri.Groups[parameterToReplace].Value;
-                                    resultBody = JsonBodyRewrite(resultBody, keyVal.Key, valueToReplace);
+                                    resultBody = RegexBodyRewrite(resultBody, keyVal.Key, valueToReplace);
                                 }
                             }
                             else
                             {
-                                resultBody = JsonBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
+                                resultBody = RegexBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
                             }
                         }
                     }
@@ -215,56 +215,14 @@ namespace KestrelMock.Services
             //await _next(context);
         }
 
-        private string JsonBodyRewrite(string inputJson, string propertyName, string replacement)
+        private string RegexBodyRewrite(string input, string propertyName, string replacement)
         {
-            var options = new JsonWriterOptions
-            {
-                Indented = false,
-            };
+            var regex = $"\"{propertyName}\"\\s*:\\s*\"(?<value>.+)\"";
 
-            var documentOptions = new JsonDocumentOptions
-            {
-                CommentHandling = JsonCommentHandling.Skip
-            };
+            var finalReplacement = $"\"{propertyName}\":\"{replacement}\"";
 
-            //we assume it's json...
-            // though with regex would be much more flexible...
-
-            using JsonDocument jsonDocument = JsonDocument.Parse(inputJson, documentOptions);
-            using var stream = new MemoryStream();
-            using var writer = new Utf8JsonWriter(stream, options);
-
-            JsonElement root = jsonDocument.RootElement;
-
-            if (root.ValueKind == JsonValueKind.Object)
-            {
-                writer.WriteStartObject();
-            }
-            else
-            {
-                return inputJson;
-            }
-
-            foreach (JsonProperty property in root.EnumerateObject())
-            {
-                if (property.Name == propertyName)
-                {
-                    writer.WriteString(propertyName, replacement);
-                }
-                else
-                {
-                    property.WriteTo(writer);
-                }
-            }
-
-            //var matchingProp = root.EnumerateObject().First(o => o.Name == keyVal.Key);
-            //matchingProp.WriteTo(writer);
-            writer.WriteEndObject();
-            writer.Flush();
-
-            return Encoding.UTF8.GetString(stream.ToArray());
+            return Regex.Replace(input, regex, finalReplacement, RegexOptions.Compiled);
         }
-
 
         private async Task LoadBodyFromFile()
         {
