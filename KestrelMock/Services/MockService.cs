@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection.Metadata;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -20,6 +21,9 @@ namespace KestrelMock.Services
         private ConcurrentDictionary<string, HttpMockSetting> _pathStartsWithMappings;
         private ConcurrentDictionary<string, List<HttpMockSetting>> _bodyCheckMappings;
         private ConcurrentDictionary<Regex, HttpMockSetting> _pathMatchesRegex;
+
+        private static readonly Regex UriTemplateParameterParser = new Regex(@"\{(?<parameter>[^{}?]*)\}", RegexOptions.Compiled);
+
         private readonly MockConfiguration _mockConfiguration;
         private readonly RequestDelegate _next;
 
@@ -76,12 +80,16 @@ namespace KestrelMock.Services
 
                 if (!string.IsNullOrWhiteSpace(matchResult.Body))
                 {
-
                     string resultBody = matchResult.Body;
 
-                    if (matchResult.ReplaceDictionary?.Any() == true)
+                    if (matchResult.Replace is null)
                     {
+                        await context.Response.WriteAsync(resultBody);
+                        return;
+                    }
 
+                    if (matchResult.Replace.RegexUriReplacements?.Any() == true)
+                    {
                         var options = new JsonWriterOptions
                         {
                             Indented = false,
@@ -92,7 +100,7 @@ namespace KestrelMock.Services
                             CommentHandling = JsonCommentHandling.Skip
                         };
 
-                        foreach (var keyVal in matchResult.ReplaceDictionary)
+                        foreach (var keyVal in matchResult.Replace.RegexUriReplacements)
                         {
                             var pathRegexMatch = Regex.Match(path, keyVal.Value);
 
@@ -130,7 +138,7 @@ namespace KestrelMock.Services
 
                                 foreach (JsonProperty property in root.EnumerateObject())
                                 {
-                                    if(property.Name == keyVal.Key)
+                                    if (property.Name == keyVal.Key)
                                     {
                                         writer.WriteString(keyVal.Key, replacement);
                                     }
@@ -155,13 +163,106 @@ namespace KestrelMock.Services
                         }
                     }
 
+
+                    if (matchResult.Replace.BodyReplacements?.Any() == true)
+                    {
+                        foreach (var keyVal in matchResult.Replace.BodyReplacements)
+                        {
+                            resultBody = JsonBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
+                        }
+                    }
+
+                    if (matchResult.Replace.UriPathReplacements?.Any() == true 
+                        && !String.IsNullOrWhiteSpace(matchResult.Replace.UriTemplate))
+                    {
+
+                        string parameterRegexString = matchResult.Replace.UriTemplate.Replace("/", @"\/");
+
+                        foreach (Match match in UriTemplateParameterParser.Matches(matchResult.Replace.UriTemplate))
+                        {
+                            parameterRegexString = parameterRegexString
+                                        .Replace(match.Value, $"(?<{match.Groups["parameter"].Value}>[^{{}}?]*)");
+                        }
+
+                        var matchesOnUri = Regex.Match(path, parameterRegexString);
+
+                        foreach (var keyVal in matchResult.Replace.UriPathReplacements)
+                        {
+                            if (UriTemplateParameterParser.IsMatch(keyVal.Value))
+                            {
+
+                                var parameterToReplace = UriTemplateParameterParser.Match(keyVal.Value)
+                                    .Groups["parameter"].Value;
+
+                                if (matchesOnUri.Groups[parameterToReplace] != null)
+                                {
+                                    var valueToReplace = matchesOnUri.Groups[parameterToReplace].Value;
+                                    resultBody = JsonBodyRewrite(resultBody, keyVal.Key, valueToReplace);
+                                }
+                            }
+                            else
+                            {
+                                resultBody = JsonBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
+                            }
+                        }
+                    }
+
                     await context.Response.WriteAsync(resultBody);
                 }
-
             }
 
             //breakes execution
             //await _next(context);
+        }
+
+        private string JsonBodyRewrite(string inputJson, string propertyName, string replacement)
+        {
+            var options = new JsonWriterOptions
+            {
+                Indented = false,
+            };
+
+            var documentOptions = new JsonDocumentOptions
+            {
+                CommentHandling = JsonCommentHandling.Skip
+            };
+
+            //we assume it's json...
+            // though with regex would be much more flexible...
+
+            using JsonDocument jsonDocument = JsonDocument.Parse(inputJson, documentOptions);
+            using var stream = new MemoryStream();
+            using var writer = new Utf8JsonWriter(stream, options);
+
+            JsonElement root = jsonDocument.RootElement;
+
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                writer.WriteStartObject();
+            }
+            else
+            {
+                return inputJson;
+            }
+
+            foreach (JsonProperty property in root.EnumerateObject())
+            {
+                if (property.Name == propertyName)
+                {
+                    writer.WriteString(propertyName, replacement);
+                }
+                else
+                {
+                    property.WriteTo(writer);
+                }
+            }
+
+            //var matchingProp = root.EnumerateObject().First(o => o.Name == keyVal.Key);
+            //matchingProp.WriteTo(writer);
+            writer.WriteEndObject();
+            writer.Flush();
+
+            return Encoding.UTF8.GetString(stream.ToArray());
         }
 
 
@@ -309,37 +410,6 @@ namespace KestrelMock.Services
                     _pathMatchesRegex.TryAdd(regex, httpMockSetting);
                 }
             }
-        }
-    }
-
-    public static class RegexExtensions
-    {
-        public static string ReplaceGroup(
-            this Regex regex, string input, string groupName, string replacement)
-        {
-            return regex.Replace(
-                input,
-                m =>
-                {
-                    var group = m.Groups[groupName];
-                    var sb = new StringBuilder();
-                    var previousCaptureEnd = 0;
-                    foreach (var capture in group.Captures.Cast<Capture>())
-                    {
-                        var currentCaptureEnd =
-                            capture.Index + capture.Length - m.Index;
-                        var currentCaptureLength =
-                            capture.Index - m.Index - previousCaptureEnd;
-                        sb.Append(
-                            m.Value.Substring(
-                                previousCaptureEnd, currentCaptureLength));
-                        sb.Append(replacement);
-                        previousCaptureEnd = currentCaptureEnd;
-                    }
-                    sb.Append(m.Value.Substring(previousCaptureEnd));
-
-                    return sb.ToString();
-                });
         }
     }
 

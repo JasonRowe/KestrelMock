@@ -123,6 +123,27 @@ namespace KestrelMock.Tests
 			Assert.Equal(200, (int)response.StatusCode);
 		}
 
+		[Theory]
+		[InlineData("CHIANTI", "RED")]
+		public async Task CanReplaceBodyFromUriWithUriParameters(string wine, string color)
+		{
+			var client = _factory.CreateClient();
+			var response = await client.GetAsync($"/api/wines/{wine}/{color}");
+
+			Assert.Equal($"{{\"wine\":\"{wine}\",\"color\":\"{color}\"}}", await response.Content.ReadAsStringAsync());
+			Assert.Equal(200, (int)response.StatusCode);
+		}
+
+		[Fact]
+		public async Task CanReplaceBodySingleFieldFromSettings()
+		{
+			var client = _factory.CreateClient();
+			var response = await client.GetAsync($"/api/replace/");
+
+			Assert.Equal($"{{\"replace\":\"modified\"}}", await response.Content.ReadAsStringAsync());
+			Assert.Equal(200, (int)response.StatusCode);
+		}
+
 		[Fact]
 		public async Task CanMockBodyDoesNotContainsResponse()
 		{

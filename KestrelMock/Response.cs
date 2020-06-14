@@ -3,7 +3,7 @@ using System.Net;
 
 namespace KestrelMock
 {
-	public class Response
+    public class Response
 	{
 		public int Status { get; set; }
 
@@ -13,6 +13,6 @@ namespace KestrelMock
 
 		public string BodyFromFilePath { get; set; }
 
-		public Dictionary<string,string> ReplaceDictionary { get; set; }
+		public Replace Replace { get; set; }
 	}
 }
