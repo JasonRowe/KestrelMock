@@ -217,11 +217,11 @@ namespace KestrelMock.Services
 
         private string RegexBodyRewrite(string input, string propertyName, string replacement)
         {
-            var regex = $"\"{propertyName}\"\\s*:\\s*\"(?<value>.+)\"";
+            var regex = $"\"{propertyName}\"\\s*:\\s*\"(?<value>.+?)\"";
 
             var finalReplacement = $"\"{propertyName}\":\"{replacement}\"";
 
-            return Regex.Replace(input, regex, finalReplacement, RegexOptions.Compiled);
+            return Regex.Replace(input, regex, $"{finalReplacement}");
         }
 
         private async Task LoadBodyFromFile()

@@ -6,19 +6,19 @@
 
   <ItemGroup>
     <Content Remove="appsettings.json" />
-    <Content Remove="responses\pet.json" />
     <Content Remove="responses\response.json" />
+    <Content Remove="responses\wine.json" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="responses\pet.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="responses\response.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="responses\wine.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
