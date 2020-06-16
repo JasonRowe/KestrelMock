@@ -15,15 +15,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace KestrelMock
 {
-	/// <summary>
-	/// default startup implementation, this should not be necessary for aspnetcore.. might simplify a bit
-	/// </summary>
-	public class Startup
+	public class TestStartup
 	{
 		private readonly IConfiguration configuration;
-		private readonly IHostingEnvironment hostingEnvironment;
+		private readonly IWebHostEnvironment hostingEnvironment;
 
-		public Startup(IConfiguration configuration, IHostingEnvironment hostingEnvironment)
+		public TestStartup(IConfiguration configuration, IWebHostEnvironment hostingEnvironment)
 		{
 			this.configuration = configuration;
 			this.hostingEnvironment = hostingEnvironment;
@@ -35,7 +32,7 @@ namespace KestrelMock
 			services.Configure<MockConfiguration>(configuration.GetSection("MockSettings"));
 		}
 
-		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
 			app.UseMockService();
 		}
