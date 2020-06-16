@@ -6,6 +6,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection.Metadata;
+using System.Runtime.InteropServices.ComTypes;
+using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -17,6 +21,9 @@ namespace KestrelMock.Services
         private ConcurrentDictionary<string, HttpMockSetting> _pathStartsWithMappings;
         private ConcurrentDictionary<string, List<HttpMockSetting>> _bodyCheckMappings;
         private ConcurrentDictionary<Regex, HttpMockSetting> _pathMatchesRegex;
+
+        private static readonly Regex UriTemplateParameterParser = new Regex(@"\{(?<parameter>[^{}?]*)\}", RegexOptions.Compiled);
+
         private readonly MockConfiguration _mockConfiguration;
         private readonly RequestDelegate _next;
 
@@ -49,7 +56,7 @@ namespace KestrelMock.Services
                 }
             }
 
-            var matchResult = FindMatches(path, body);
+            var matchResult = FindMatchingResponseMock(path, body);
 
             if (matchResult is null)
             {
@@ -73,13 +80,150 @@ namespace KestrelMock.Services
 
                 if (!string.IsNullOrWhiteSpace(matchResult.Body))
                 {
-                    await context.Response.WriteAsync(matchResult.Body);
+                    string resultBody = matchResult.Body;
+
+                    if (matchResult.Replace is null)
+                    {
+                        await context.Response.WriteAsync(resultBody);
+                        return;
+                    }
+
+                    if (matchResult.Replace.RegexUriReplacements?.Any() == true)
+                    {
+                        var options = new JsonWriterOptions
+                        {
+                            Indented = false,
+                        };
+
+                        var documentOptions = new JsonDocumentOptions
+                        {
+                            CommentHandling = JsonCommentHandling.Skip
+                        };
+
+                        foreach (var keyVal in matchResult.Replace.RegexUriReplacements)
+                        {
+                            var pathRegexMatch = Regex.Match(path, keyVal.Value);
+
+                            if (pathRegexMatch.Success)
+                            {
+                                var regex = $"{{.*\"{keyVal.Key}\":\\s*\"(?<field>[^/.]+)\".*}}";
+                                var relaceRegex = new Regex(regex, RegexOptions.Compiled);
+
+                                var replacement = pathRegexMatch.Groups.Count == 2 ?
+                                    pathRegexMatch.Groups[1].Value : pathRegexMatch.Value;
+
+
+                                if (!relaceRegex.IsMatch(matchResult.Body))
+                                {
+                                    throw new Exception("no match");
+                                }
+
+                                //we assume it's json...
+                                // though with regex would be much more flexible...
+
+                                using JsonDocument jsonDocument = JsonDocument.Parse(resultBody, documentOptions);
+                                using var stream = new MemoryStream();
+                                using var writer = new Utf8JsonWriter(stream, options);
+
+                                JsonElement root = jsonDocument.RootElement;
+
+                                if (root.ValueKind == JsonValueKind.Object)
+                                {
+                                    writer.WriteStartObject();
+                                }
+                                else
+                                {
+                                    return;
+                                }
+
+                                foreach (JsonProperty property in root.EnumerateObject())
+                                {
+                                    if (property.Name == keyVal.Key)
+                                    {
+                                        writer.WriteString(keyVal.Key, replacement);
+                                    }
+                                    else
+                                    {
+                                        property.WriteTo(writer);
+                                    }
+                                }
+
+                                //var matchingProp = root.EnumerateObject().First(o => o.Name == keyVal.Key);
+                                //matchingProp.WriteTo(writer);
+                                writer.WriteEndObject();
+                                writer.Flush();
+
+                                string finalJson = Encoding.UTF8.GetString(stream.ToArray());
+                                resultBody = finalJson;
+
+                                //var match = relaceRegex.Match(matchResult.Body).Groups["field"].Value;
+                                //resultBody = resultBody.Replace(match, replacement);
+                                //relaceRegex.ReplaceGroup(matchResult.Body, "field", replacement);
+                            }
+                        }
+                    }
+
+
+                    if (matchResult.Replace.BodyReplacements?.Any() == true)
+                    {
+                        foreach (var keyVal in matchResult.Replace.BodyReplacements)
+                        {
+                            resultBody = RegexBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
+                        }
+                    }
+
+                    if (matchResult.Replace.UriPathReplacements?.Any() == true 
+                        && !String.IsNullOrWhiteSpace(matchResult.Replace.UriTemplate))
+                    {
+
+                        string parameterRegexString = matchResult.Replace.UriTemplate.Replace("/", @"\/");
+
+                        foreach (Match match in UriTemplateParameterParser.Matches(matchResult.Replace.UriTemplate))
+                        {
+                            parameterRegexString = parameterRegexString
+                                        .Replace(match.Value, $"(?<{match.Groups["parameter"].Value}>[^{{}}?]*)");
+                        }
+
+                        parameterRegexString = $"{parameterRegexString}/??.*";
+
+                        var matchesOnUri = Regex.Match(path, parameterRegexString);
+
+                        foreach (var keyVal in matchResult.Replace.UriPathReplacements)
+                        {
+                            if (UriTemplateParameterParser.IsMatch(keyVal.Value))
+                            {
+
+                                var parameterToReplace = UriTemplateParameterParser.Match(keyVal.Value)
+                                    .Groups["parameter"].Value;
+
+                                if (matchesOnUri.Groups[parameterToReplace] != null)
+                                {
+                                    var valueToReplace = matchesOnUri.Groups[parameterToReplace].Value;
+                                    resultBody = RegexBodyRewrite(resultBody, keyVal.Key, valueToReplace);
+                                }
+                            }
+                            else
+                            {
+                                resultBody = RegexBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
+                            }
+                        }
+                    }
+
+                    await context.Response.WriteAsync(resultBody);
                 }
-                
             }
 
             //breakes execution
-            //_next(context);
+            //await _next(context);
+        }
+
+        private string RegexBodyRewrite(string input, string propertyName, string replacement)
+        {
+            var regex = $"\"{propertyName}\"\\s*:\\s*\"(?<value>.+?)\"";
+
+            var finalReplacement = $"\"{propertyName}\":\"{replacement}\"";
+
+            return Regex.Replace(input, regex, $"{finalReplacement}");
         }
 
         private async Task LoadBodyFromFile()
@@ -89,30 +233,30 @@ namespace KestrelMock.Services
             {
                 foreach (var setting in mockSettings)
                 {
-                    toBeAwaited.Add(UpdateBodyFromFile(setting));
+                    toBeAwaited.Add(ReadBodyFromFile(setting));
                 }
             }
 
             foreach (var mockPathSettings in _pathMappings.Values)
             {
-                toBeAwaited.Add(UpdateBodyFromFile(mockPathSettings));
+                toBeAwaited.Add(ReadBodyFromFile(mockPathSettings));
             }
 
             foreach (var mockStartsWithSettings in _pathStartsWithMappings.Values)
             {
-                toBeAwaited.Add(UpdateBodyFromFile(mockStartsWithSettings));
+                toBeAwaited.Add(ReadBodyFromFile(mockStartsWithSettings));
             }
 
             foreach (var mockRegexSettings in _pathMatchesRegex.Values)
             {
-                toBeAwaited.Add(UpdateBodyFromFile(mockRegexSettings));
+                toBeAwaited.Add(ReadBodyFromFile(mockRegexSettings));
             }
 
             await Task.WhenAll(toBeAwaited);
 
         }
 
-        private async Task UpdateBodyFromFile(HttpMockSetting setting)
+        private async Task ReadBodyFromFile(HttpMockSetting setting)
         {
             if (!string.IsNullOrEmpty(setting.Response.BodyFromFilePath) && string.IsNullOrEmpty(setting.Response.Body))
             {
@@ -120,7 +264,8 @@ namespace KestrelMock.Services
                 {
                     using (var reader = File.OpenText(setting.Response.BodyFromFilePath))
                     {
-                        setting.Response.Body = await reader.ReadToEndAsync();
+                        var bodyFromFile = await reader.ReadToEndAsync();
+                        setting.Response.Body = bodyFromFile;
                     }
                 }
                 else
@@ -130,7 +275,7 @@ namespace KestrelMock.Services
             }
         }
 
-        private Response FindMatches(string path, string body)
+        private Response FindMatchingResponseMock(string path, string body)
         {
             Response result = null;
 
@@ -227,4 +372,5 @@ namespace KestrelMock.Services
             }
         }
     }
+
 }
