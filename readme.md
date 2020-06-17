@@ -1,4 +1,7 @@
-# Kestrel Mock  ![.NET Core](https://github.com/JasonRowe/KestrelMock/workflows/.NET%20Core/badge.svg?branch=master)
+# Kestrel Mock  
+
+![Build status](https://github.com/JasonRowe/KestrelMock/workflows/.NET%20Core/badge.svg?branch=master)
+![Nuget version](https://img.shields.io/nuget/v/kestrelmock)
 
 
 A .Net Core HTTP mock server.
