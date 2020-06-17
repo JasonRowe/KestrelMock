@@ -191,6 +191,8 @@ Some advanced dynamic mocking capabilities are provided for Json body data respo
 
 ### From Uri: Uri template (path only)
 
+UriPathReplacements is in the format bodyValue:uriValue
+   
 ```json
 {
       "Request": {
@@ -211,7 +213,7 @@ Some advanced dynamic mocking capabilities are provided for Json body data respo
             "year": "1987"
           },
           "UriPathReplacements": {
-            "wine": "{wine}", //bodyValue:uriValue
+            "wine": "{wine}",
             "color": "{color}"
           }
         }
