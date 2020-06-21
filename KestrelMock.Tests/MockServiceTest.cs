@@ -19,7 +19,6 @@ namespace KestrelMock.Tests
                 {
                     cfg.AddJsonFile("appsettings.json").AddEnvironmentVariables();
                 })
-                .UseUrls("http://*:60000/")
                 .UseStartup<TestStartup>();
         }
     }

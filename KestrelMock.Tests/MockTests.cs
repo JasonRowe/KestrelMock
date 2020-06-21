@@ -65,7 +65,7 @@ namespace KestrelMock.Tests
             response.EnsureSuccessStatusCode(); // Status Code 200-299
 
             var message = await response.Content.ReadAsStringAsync();
-            Assert.Contains("banana_x", message);
+            Assert.Contains("regex_is_working", message);
         }
 
         [Fact]
