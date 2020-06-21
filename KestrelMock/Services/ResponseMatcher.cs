@@ -36,7 +36,7 @@ namespace KestrelMock.Services
                 }
             }
 
-            if (result == null && mapping.BodyCheckMapping != null && mapping.BodyCheckMapping.ContainsKey(path))
+            if (result == null && mapping.BodyCheckMapping?.ContainsKey(path) == true)
             {
                 var possibleResults = mapping.BodyCheckMapping[path];
 

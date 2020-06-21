@@ -24,16 +24,14 @@ namespace KestrelMock.Services
         {
             var mappings = await InputMappingParser.ParsePathMappings(_mockConfiguration);
 
+            string path = context.Request.Path + context.Request.QueryString.ToString();
 
-            var path = context.Request.Path + context.Request.QueryString.ToString();
             string body = null;
 
             if (context.Request.Body != null)
             {
-                using (StreamReader reader = new StreamReader(context.Request.Body))
-                {
-                    body = await reader.ReadToEndAsync();
-                }
+                using StreamReader reader = new StreamReader(context.Request.Body);
+                body = await reader.ReadToEndAsync();
             }
 
             var matchResult = ResponseMatcher.FindMatchingResponseMock(path, body, mappings);
@@ -41,57 +39,32 @@ namespace KestrelMock.Services
             if (matchResult is null)
             {
                 context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                return;
             }
 
-            if (matchResult != null)
+            if (matchResult.Headers?.Any() == true)
             {
-                if (matchResult.Headers != null || !matchResult.Headers.Any())
+                foreach (var header in matchResult.Headers)
                 {
-                    foreach (var header in matchResult.Headers)
+                    foreach (var key in header.Keys)
                     {
-                        foreach (var key in header.Keys)
-                        {
-                            context.Response.Headers.Add(key, header[key]);
-                        }
+                        context.Response.Headers.Add(key, header[key]);
                     }
                 }
+            }
 
-                context.Response.StatusCode = matchResult.Status;
+            context.Response.StatusCode = matchResult.Status;
 
-                if (!string.IsNullOrWhiteSpace(matchResult.Body))
+            if (!string.IsNullOrWhiteSpace(matchResult.Body))
+            {
+                string resultBody = matchResult.Body;
+
+                if (matchResult.Replace != null)
                 {
-                    string resultBody = matchResult.Body;
-
-                    if (matchResult.Replace is null)
-                    {
-                        await context.Response.WriteAsync(resultBody);
-                        return;
-                    }
-
-                    if (matchResult.Replace.RegexUriReplacements?.Any() == true)
-                    {
-                        foreach (var keyVal in matchResult.Replace.RegexUriReplacements)
-                        {
-                            resultBody = BodyReplacementService.RegexUriReplace(path, resultBody, keyVal);
-                        }
-                    }
-
-                    if (matchResult.Replace.BodyReplacements?.Any() == true)
-                    {
-                        foreach (var keyVal in matchResult.Replace.BodyReplacements)
-                        {
-                            resultBody = BodyReplacementService.RegexBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
-                        }
-                    }
-
-                    if (matchResult.Replace.UriPathReplacements?.Any() == true
-                        && !String.IsNullOrWhiteSpace(matchResult.Replace.UriTemplate))
-                    {
-                        resultBody = BodyReplacementService.UriPathReplacements(path, matchResult, resultBody);
-                    }
-
-                    await context.Response.WriteAsync(resultBody);
+                    resultBody = BodyWriterService.UpdateBody(path, matchResult, resultBody);
                 }
+
+                await context.Response.WriteAsync(resultBody);
             }
 
             //breakes execution
