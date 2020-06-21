@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Net;
 
-namespace KestrelMock
+namespace KestrelMock.Settings
 {
     public class Response
 	{

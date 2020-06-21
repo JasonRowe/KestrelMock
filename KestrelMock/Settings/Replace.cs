@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace KestrelMock
+namespace KestrelMock.Settings
 {
     public class Replace
     {
