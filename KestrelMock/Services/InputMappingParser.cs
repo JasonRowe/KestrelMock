@@ -15,7 +15,7 @@ namespace KestrelMock.Services
         {
             var inputMappings = new InputMappings();
 
-            if (httpMockSettings == null || !httpMockSettings.Any())
+            if (httpMockSettings?.Any() != true)
             {
                 return inputMappings;
             }
@@ -24,7 +24,8 @@ namespace KestrelMock.Services
             {
                 if (!string.IsNullOrEmpty(httpMockSetting.Request.Path))
                 {
-                    if (!string.IsNullOrEmpty(httpMockSetting.Request.BodyContains) || !string.IsNullOrEmpty(httpMockSetting.Request.BodyDoesNotContain))
+                    if (!string.IsNullOrEmpty(httpMockSetting.Request.BodyContains) 
+                        || !string.IsNullOrEmpty(httpMockSetting.Request.BodyDoesNotContain))
                     {
                         if (inputMappings.BodyCheckMapping.ContainsKey(httpMockSetting.Request.Path))
                         {
@@ -33,7 +34,8 @@ namespace KestrelMock.Services
                         }
                         else
                         {
-                            inputMappings.BodyCheckMapping.TryAdd(httpMockSetting.Request.Path, new List<HttpMockSetting> { httpMockSetting });
+                            inputMappings.BodyCheckMapping.TryAdd(httpMockSetting.Request.Path, 
+                                new List<HttpMockSetting> { httpMockSetting });
                         }
                     }
                     else
@@ -94,15 +96,15 @@ namespace KestrelMock.Services
             {
                 if (File.Exists(setting.Response.BodyFromFilePath))
                 {
-                    using (var reader = File.OpenText(setting.Response.BodyFromFilePath))
-                    {
-                        var bodyFromFile = await reader.ReadToEndAsync();
-                        setting.Response.Body = bodyFromFile;
-                    }
+                    using var reader = File.OpenText(setting.Response.BodyFromFilePath);
+
+                    var bodyFromFile = await reader.ReadToEndAsync();
+                    
+                    setting.Response.Body = bodyFromFile;
                 }
                 else
                 {
-                    throw new Exception($"Path in BodyFromFilePath not found {setting.Response.BodyFromFilePath}");
+                    throw new Exception($"Path in BodyFromFilePath not found: {setting.Response.BodyFromFilePath}");
                 }
             }
         }

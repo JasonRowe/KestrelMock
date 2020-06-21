@@ -22,50 +22,58 @@ namespace KestrelMock.Services
 
         public async Task Invoke(HttpContext context)
         {
-            var mappings = await InputMappingParser.ParsePathMappings(_mockConfiguration);
-
-            string path = context.Request.Path + context.Request.QueryString.ToString();
-
-            string body = null;
-
-            if (context.Request.Body != null)
+            try
             {
-                using StreamReader reader = new StreamReader(context.Request.Body);
-                body = await reader.ReadToEndAsync();
-            }
+                var mappings = await InputMappingParser.ParsePathMappings(_mockConfiguration);
 
-            var matchResult = ResponseMatcher.FindMatchingResponseMock(path, body, mappings);
+                string path = context.Request.Path + context.Request.QueryString.ToString();
 
-            if (matchResult is null)
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                return;
-            }
+                string body = null;
 
-            if (matchResult.Headers?.Any() == true)
-            {
-                foreach (var header in matchResult.Headers)
+                if (context.Request.Body != null)
                 {
-                    foreach (var key in header.Keys)
+                    using StreamReader reader = new StreamReader(context.Request.Body);
+                    body = await reader.ReadToEndAsync();
+                }
+
+                var matchResult = ResponseMatcher.FindMatchingResponseMock(path, body, mappings);
+
+                if (matchResult is null)
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    return;
+                }
+
+                if (matchResult.Headers?.Any() == true)
+                {
+                    foreach (var header in matchResult.Headers)
                     {
-                        context.Response.Headers.Add(key, header[key]);
+                        foreach (var key in header.Keys)
+                        {
+                            context.Response.Headers.Add(key, header[key]);
+                        }
                     }
                 }
-            }
 
-            context.Response.StatusCode = matchResult.Status;
+                context.Response.StatusCode = matchResult.Status;
 
-            if (!string.IsNullOrWhiteSpace(matchResult.Body))
-            {
-                string resultBody = matchResult.Body;
-
-                if (matchResult.Replace != null)
+                if (!string.IsNullOrWhiteSpace(matchResult.Body))
                 {
-                    resultBody = BodyWriterService.UpdateBody(path, matchResult, resultBody);
-                }
+                    string resultBody = matchResult.Body;
 
-                await context.Response.WriteAsync(resultBody);
+                    if (matchResult.Replace != null)
+                    {
+                        resultBody = BodyWriterService.UpdateBody(path, matchResult, resultBody);
+                    }
+
+                    await context.Response.WriteAsync(resultBody);
+                }
             }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex);
+            } 
+            
 
             //breakes execution
             //await _next(context);
