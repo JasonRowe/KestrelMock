@@ -15,9 +15,38 @@ using System.Threading.Tasks;
 
 namespace KestrelMock.Services
 {
+
+    public sealed class PathMapping : ConcurrentDictionary<string, HttpMockSetting>
+    {
+
+    }
+
+    public sealed class PathStartsWithMapping : ConcurrentDictionary<string, HttpMockSetting>
+    {
+
+    }
+
+    public sealed class BodyCheckMapping : ConcurrentDictionary<string, List<HttpMockSetting>>
+    {
+
+    }
+
+    public sealed class PathMatchesRegexMapping : ConcurrentDictionary<Regex, HttpMockSetting>
+    {
+
+    }
+
+    public class InputMappings
+    {
+        public PathMapping PathMapping { get; set; }
+        public PathStartsWithMapping PathStartsWithMapping { get; set; }
+        public BodyCheckMapping BodyCheckMapping { get; set; }
+        public PathMatchesRegexMapping PathMatchesRegexMapping { get; set; }
+    }
+
+
     public class MockService
     {
-        private ConcurrentDictionary<string, HttpMockSetting> _pathMappings;
         private ConcurrentDictionary<string, HttpMockSetting> _pathStartsWithMappings;
         private ConcurrentDictionary<string, List<HttpMockSetting>> _bodyCheckMappings;
         private ConcurrentDictionary<Regex, HttpMockSetting> _pathMatchesRegex;
@@ -29,7 +58,6 @@ namespace KestrelMock.Services
 
         public MockService(IOptions<MockConfiguration> options, RequestDelegate next)
         {
-            _pathMappings = new ConcurrentDictionary<string, HttpMockSetting>();
             _pathStartsWithMappings = new ConcurrentDictionary<string, HttpMockSetting>();
             _bodyCheckMappings = new ConcurrentDictionary<string, List<HttpMockSetting>>();
             _pathMatchesRegex = new ConcurrentDictionary<Regex, HttpMockSetting>();
@@ -39,9 +67,11 @@ namespace KestrelMock.Services
 
         public async Task Invoke(HttpContext context)
         {
-            if (_pathMappings.IsEmpty && _pathStartsWithMappings.IsEmpty && _bodyCheckMappings.IsEmpty)
+            var pathMappings = new ConcurrentDictionary<string, HttpMockSetting>();
+
+            if (pathMappings.IsEmpty && _pathStartsWithMappings.IsEmpty && _bodyCheckMappings.IsEmpty)
             {
-                SetupPathMappings(_mockConfiguration);
+                ParsePathMappings(_mockConfiguration);
                 await LoadBodyFromFile();
             }
 
@@ -175,38 +205,7 @@ namespace KestrelMock.Services
                     if (matchResult.Replace.UriPathReplacements?.Any() == true 
                         && !String.IsNullOrWhiteSpace(matchResult.Replace.UriTemplate))
                     {
-
-                        string parameterRegexString = matchResult.Replace.UriTemplate.Replace("/", @"\/");
-
-                        foreach (Match match in UriTemplateParameterParser.Matches(matchResult.Replace.UriTemplate))
-                        {
-                            parameterRegexString = parameterRegexString
-                                        .Replace(match.Value, $"(?<{match.Groups["parameter"].Value}>[^{{}}?]*)");
-                        }
-
-                        parameterRegexString = $"{parameterRegexString}/??.*";
-
-                        var matchesOnUri = Regex.Match(path, parameterRegexString);
-
-                        foreach (var keyVal in matchResult.Replace.UriPathReplacements)
-                        {
-                            if (UriTemplateParameterParser.IsMatch(keyVal.Value))
-                            {
-
-                                var parameterToReplace = UriTemplateParameterParser.Match(keyVal.Value)
-                                    .Groups["parameter"].Value;
-
-                                if (matchesOnUri.Groups[parameterToReplace] != null)
-                                {
-                                    var valueToReplace = matchesOnUri.Groups[parameterToReplace].Value;
-                                    resultBody = RegexBodyRewrite(resultBody, keyVal.Key, valueToReplace);
-                                }
-                            }
-                            else
-                            {
-                                resultBody = RegexBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
-                            }
-                        }
+                        resultBody = UriPathReplacements(path, matchResult, resultBody);
                     }
 
                     await context.Response.WriteAsync(resultBody);
@@ -215,6 +214,43 @@ namespace KestrelMock.Services
 
             //breakes execution
             //await _next(context);
+        }
+
+        private string UriPathReplacements(string path, Response matchResult, string resultBody)
+        {
+            string parameterRegexString = matchResult.Replace.UriTemplate.Replace("/", @"\/");
+
+            foreach (Match match in UriTemplateParameterParser.Matches(matchResult.Replace.UriTemplate))
+            {
+                parameterRegexString = parameterRegexString
+                            .Replace(match.Value, $"(?<{match.Groups["parameter"].Value}>[^{{}}?]*)");
+            }
+
+            parameterRegexString = $"{parameterRegexString}/??.*";
+
+            var matchesOnUri = Regex.Match(path, parameterRegexString);
+
+            foreach (var keyVal in matchResult.Replace.UriPathReplacements)
+            {
+                if (UriTemplateParameterParser.IsMatch(keyVal.Value))
+                {
+
+                    var parameterToReplace = UriTemplateParameterParser.Match(keyVal.Value)
+                        .Groups["parameter"].Value;
+
+                    if (matchesOnUri.Groups[parameterToReplace] != null)
+                    {
+                        var valueToReplace = matchesOnUri.Groups[parameterToReplace].Value;
+                        resultBody = RegexBodyRewrite(resultBody, keyVal.Key, valueToReplace);
+                    }
+                }
+                else
+                {
+                    resultBody = RegexBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
+                }
+            }
+
+            return resultBody;
         }
 
         private string RegexBodyRewrite(string input, string propertyName, string replacement)
@@ -332,8 +368,10 @@ namespace KestrelMock.Services
             return result;
         }
 
-        private void SetupPathMappings(MockConfiguration httpMockSettings)
+        private void ParsePathMappings(MockConfiguration httpMockSettings)
         {
+            var pathMappings = new ConcurrentDictionary<string, HttpMockSetting>();
+
             if (httpMockSettings == null || !httpMockSettings.Any())
             {
                 return;
@@ -357,7 +395,7 @@ namespace KestrelMock.Services
                     }
                     else
                     {
-                        _pathMappings.TryAdd(httpMockSetting.Request.Path, httpMockSetting);
+                        pathMappings.TryAdd(httpMockSetting.Request.Path, httpMockSetting);
                     }
                 }
                 else if (!string.IsNullOrEmpty(httpMockSetting.Request.PathStartsWith))
