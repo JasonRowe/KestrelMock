@@ -23,6 +23,7 @@ namespace KestrelMock.Services
 
         public async Task Invoke(HttpContext context)
         {
+            // TODO we may want to cache this instead of loading mappings with each request.
             var mappings = await InputMappingParser.ParsePathMappings(_mockConfiguration);
 
             string path = context.Request.Path + context.Request.QueryString.ToString();
