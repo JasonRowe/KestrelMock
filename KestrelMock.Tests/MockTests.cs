@@ -119,7 +119,7 @@ namespace KestrelMock.Tests
             var client = _factory.CreateClient();
             var response = await client.GetAsync($"/api/orders/{order}/{product}");
 
-            Assert.Equal($"{{\"order\":\"{order}\",\"product\":\"{product}\"}}", await response.Content.ReadAsStringAsync());
+            Assert.Equal($"{{\"order\":\"{order}\", \"product\":\"{product}\"}}", await response.Content.ReadAsStringAsync());
             Assert.Equal(200, (int)response.StatusCode);
         }
 

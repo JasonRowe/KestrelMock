@@ -7,11 +7,13 @@ using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using KestrelMock.Services;
+using KestrelMock.Settings;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace KestrelMock
 {
@@ -37,6 +39,7 @@ namespace KestrelMock
 
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
 		{
+			app.UseDeveloperExceptionPage();
 			app.UseMockService();
 		}
 	}

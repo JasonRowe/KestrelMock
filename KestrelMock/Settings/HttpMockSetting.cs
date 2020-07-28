@@ -1,4 +1,6 @@
-﻿namespace KestrelMock
+﻿using KestrelMock.Domain;
+
+namespace KestrelMock.Settings
 {
 	public class HttpMockSetting
 	{
