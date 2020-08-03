@@ -1,7 +1,9 @@
 ﻿using KestrelMock.Settings;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Linq;
@@ -23,10 +25,32 @@ namespace KestrelMock.Services
 
         public async Task Invoke(HttpContext context)
         {
+            try
+            {
+                await InvokeMock(context);
+            }
+            catch (Exception ex)
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+                var errorResponse = new
+                {
+                    error = ex.ToString()
+                };
+
+                await context.Response.WriteAsync(JsonConvert.SerializeObject(errorResponse));
+            }
+            
+            //breakes execution
+            //await _next(context);
+        }
+
+        protected virtual async Task<bool> InvokeMock(HttpContext context)
+        {
             // TODO we may want to cache this instead of loading mappings with each request.
             var mappings = await InputMappingParser.ParsePathMappings(_mockConfiguration);
 
-            string path = context.Request.Path + context.Request.QueryString.ToString();
+            string path = context.Request.GetEncodedPathAndQuery();
 
             string body = null;
 
@@ -41,7 +65,7 @@ namespace KestrelMock.Services
             if (matchResult is null)
             {
                 context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                return;
+                return true;
             }
 
             if (matchResult.Headers?.Any() == true)
@@ -69,8 +93,7 @@ namespace KestrelMock.Services
                 await context.Response.WriteAsync(resultBody);
             }
 
-            //breakes execution
-            //await _next(context);
+            return true;
         }
     }
 

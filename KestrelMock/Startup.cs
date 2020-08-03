@@ -39,7 +39,6 @@ namespace KestrelMock
 
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
 		{
-			app.UseDeveloperExceptionPage();
 			app.UseMockService();
 		}
 	}

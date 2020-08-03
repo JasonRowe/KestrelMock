@@ -2,8 +2,15 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using KestrelMock.Services;
+using KestrelMock.Settings;
 using KestrelMock.Tests.TestHelpers;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Refit;
 using Xunit;
 
@@ -179,8 +186,25 @@ namespace KestrelMock.Tests
         {
             var client = _factory.CreateClient();
             var response = await client.PostAsync("errors/502", new StringContent("foo"));
-
+            var content = await response.Content.ReadAsStringAsync();
             Assert.Equal(502, (int)response.StatusCode);
+        }
+
+        [Fact]
+        public async Task MockInternalError_JsonErrorResponse()
+        {
+            var client = _factory.WithWebHostBuilder(h =>
+            {
+                h.Configure(app =>
+                {
+                    app.UseMiddleware<TestErrorMock>();
+                });
+            }).CreateClient();
+
+            var response = await client.PostAsync("test", new StringContent("x"));
+            var content = await response.Content.ReadAsStringAsync();
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            Assert.Contains("\"error\":\"System.Exception: error", content);
         }
 
         [Fact]
@@ -193,6 +217,18 @@ namespace KestrelMock.Tests
             var helloWorld = await testApi.GetHelloWorldWorld();
 
             Assert.Contains("world", helloWorld.Hello);
+        }
+    }
+
+    public class TestErrorMock : MockService
+    {
+        public TestErrorMock(IOptions<MockConfiguration> options, RequestDelegate next) : base(options, next)
+        {
+        }
+
+        protected override Task<bool> InvokeMock(HttpContext context)
+        {
+            throw new Exception("error");
         }
     }
 }
