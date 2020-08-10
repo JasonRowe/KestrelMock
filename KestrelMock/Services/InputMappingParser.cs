@@ -24,33 +24,68 @@ namespace KestrelMock.Services
             {
                 if (!string.IsNullOrEmpty(httpMockSetting.Request.Path))
                 {
-                    if (!string.IsNullOrEmpty(httpMockSetting.Request.BodyContains) 
+                    if (!string.IsNullOrEmpty(httpMockSetting.Request.BodyContains)
                         || !string.IsNullOrEmpty(httpMockSetting.Request.BodyDoesNotContain))
                     {
-                        if (inputMappings.BodyCheckMapping.ContainsKey(httpMockSetting.Request.Path))
+                        foreach (var method in httpMockSetting.Request.Methods)
                         {
-                            var bodyContainesList = inputMappings.BodyCheckMapping[httpMockSetting.Request.Path];
-                            bodyContainesList.Add(httpMockSetting);
-                        }
-                        else
-                        {
-                            inputMappings.BodyCheckMapping.TryAdd(httpMockSetting.Request.Path, 
-                                new List<HttpMockSetting> { httpMockSetting });
+                            var key = new PathMappingKey
+                            {
+                                Path = httpMockSetting.Request.Path,
+                                Method = method,
+                            };
+
+                            if (inputMappings.BodyCheckMapping.ContainsKey(key))
+                            {
+                                var bodyContainesList = inputMappings.BodyCheckMapping[key];
+                                bodyContainesList.Add(httpMockSetting);
+                            }
+                            else
+                            {
+                                inputMappings.BodyCheckMapping.TryAdd(key, new List<HttpMockSetting> { httpMockSetting });
+                            }
                         }
                     }
                     else
                     {
-                        inputMappings.PathMapping.TryAdd(httpMockSetting.Request.Path, httpMockSetting);
+                        foreach (var method in httpMockSetting.Request.Methods)
+                        {
+                            var key = new PathMappingKey
+                            {
+                                Path = httpMockSetting.Request.Path,
+                                Method = method
+                            };
+
+                            inputMappings.PathMapping.TryAdd(key, httpMockSetting);
+                        }
+
                     }
                 }
                 else if (!string.IsNullOrEmpty(httpMockSetting.Request.PathStartsWith))
                 {
-                    inputMappings.PathStartsWithMapping.TryAdd(httpMockSetting.Request.PathStartsWith, httpMockSetting);
+                    foreach (var method in httpMockSetting.Request.Methods)
+                    {
+                        var key = new PathMappingKey
+                        {
+                            Path = httpMockSetting.Request.PathStartsWith,
+                            Method = method
+                        };
+
+                        inputMappings.PathStartsWithMapping.TryAdd(key, httpMockSetting);
+                    }
                 }
                 else if (!string.IsNullOrWhiteSpace(httpMockSetting.Request.PathMatchesRegex))
                 {
-                    var regex = new Regex(httpMockSetting.Request.PathMatchesRegex, RegexOptions.Compiled);
-                    inputMappings.PathMatchesRegexMapping.TryAdd(regex, httpMockSetting);
+                    foreach (var method in httpMockSetting.Request.Methods)
+                    {
+                        var key = new PathMappingRegexKey
+                        {
+                            Regex = new Regex(httpMockSetting.Request.PathMatchesRegex, RegexOptions.Compiled),
+                            Method = method,
+                        };
+
+                        inputMappings.PathMatchesRegexMapping.TryAdd(key, httpMockSetting);
+                    }
                 }
             }
 

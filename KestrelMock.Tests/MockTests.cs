@@ -115,7 +115,7 @@ namespace KestrelMock.Tests
             var client = _factory.CreateClient();
             var response = await client.PostAsync("api/estimate", new StringContent("00000"));
 
-            Assert.Contains("BodyContains Works!", await response.Content.ReadAsStringAsync());
+            Assert.Contains("BodyContains Works for PUT and POST!", await response.Content.ReadAsStringAsync());
             Assert.Equal(200, (int)response.StatusCode);
         }
 
@@ -162,7 +162,7 @@ namespace KestrelMock.Tests
             var client = _factory.CreateClient();
             var response = await client.PostAsync("api/estimate", new StringContent("foo"));
 
-            Assert.Contains("BodyDoesNotContain works!", await response.Content.ReadAsStringAsync());
+            Assert.Contains("BodyDoesNotContain works for PUT and POST!!", await response.Content.ReadAsStringAsync());
             Assert.Equal(200, (int)response.StatusCode);
         }
 
@@ -217,6 +217,37 @@ namespace KestrelMock.Tests
             var helloWorld = await testApi.GetHelloWorldWorld();
 
             Assert.Contains("world", helloWorld.Hello);
+        }
+
+        [Theory]
+        [InlineData("starts/with/but_does_not_match_verb", "NotFound", "")]
+        [InlineData("starts/with/matches_put_method", "OK", "foo")]
+        [InlineData("/test/1234/xyz", "NotFound", "")]
+        [InlineData("/test/1234/xyz", "OK", "foo")]
+        [InlineData("/hello/world", "NotFound", "")]
+        [InlineData("/hello/world", "OK", "foo")]
+        [InlineData("api/estimate", "OK", "00000")]
+        [InlineData("api/estimate", "OK", "foo")]
+        public async Task KestralMock_matches_using_verb(string url, string statusCode, string body)
+        {
+            var client = _factory.CreateClient();
+            HttpResponseMessage response;
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                response = await client.DeleteAsync(url);
+            }
+            else
+            {
+                response = await client.PutAsync(url, new StringContent(body));
+            }
+
+            Assert.Equal(response.StatusCode.ToString(), statusCode);
+
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                Assert.Contains("put", message, StringComparison.InvariantCultureIgnoreCase);
+            }
         }
     }
 

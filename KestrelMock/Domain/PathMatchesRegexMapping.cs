@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace KestrelMock.Domain
 {
-    public sealed class PathMatchesRegexMapping : ConcurrentDictionary<Regex, HttpMockSetting>
+    public sealed class PathMatchesRegexMapping : ConcurrentDictionary<PathMappingRegexKey, HttpMockSetting>
     {
 
     }
