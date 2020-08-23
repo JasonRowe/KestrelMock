@@ -1,7 +1,6 @@
 ﻿using KestrelMock.Settings;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System;
@@ -12,6 +11,9 @@ using System.Threading.Tasks;
 
 namespace KestrelMock.Services
 {
+    /// <summary>
+    /// this is the mock aspnetcore middleware
+    /// </summary>
     public class MockService
     {
         private readonly MockConfiguration _mockConfiguration;
