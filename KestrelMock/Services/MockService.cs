@@ -17,14 +17,20 @@ namespace KestrelMock.Services
         private readonly MockConfiguration _mockConfiguration;
         private readonly RequestDelegate _next;
         private readonly IInputMappingParser _inputMappingParser;
+        private readonly IResponseMatcherService _responseMatcher;
+        private readonly IBodyWriterService _bodyWriterService;
 
         public MockService(IOptions<MockConfiguration> options, 
             RequestDelegate next,
-            IInputMappingParser inputMappingParser)
+            IInputMappingParser inputMappingParser,
+            IResponseMatcherService responseMatcher,
+            IBodyWriterService bodyWriterService)
         {
             _mockConfiguration = options.Value;
             _next = next;
             _inputMappingParser = inputMappingParser;
+            _responseMatcher = responseMatcher;
+            _bodyWriterService = bodyWriterService;
         }
 
         public async Task Invoke(HttpContext context)
@@ -66,7 +72,7 @@ namespace KestrelMock.Services
 
             var method = context.Request.Method;
 
-            var matchResult = ResponseMatcher.FindMatchingResponseMock(path, body, method, mappings);
+            var matchResult = _responseMatcher.FindMatchingResponseMock(path, body, method, mappings);
 
             if (matchResult is null)
             {
@@ -93,7 +99,7 @@ namespace KestrelMock.Services
 
                 if (matchResult.Replace != null)
                 {
-                    resultBody = BodyWriterService.UpdateBody(path, matchResult, resultBody);
+                    resultBody = _bodyWriterService.UpdateBody(path, matchResult, resultBody);
                 }
 
                 await context.Response.WriteAsync(resultBody);

@@ -31,6 +31,8 @@ namespace KestrelMock
 
 		public void ConfigureServices(IServiceCollection services)
 		{
+            services.AddTransient<IBodyWriterService, BodyWriterService>();
+            services.AddTransient<IResponseMatcherService, ResponseMatcherService>();
 			services.AddTransient<IInputMappingParser, InputMappingParser>();
             services.Configure<MockConfiguration>(configuration.GetSection("MockSettings"));
 		}
