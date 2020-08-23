@@ -16,18 +16,22 @@ namespace KestrelMock.Services
     {
         private readonly MockConfiguration _mockConfiguration;
         private readonly RequestDelegate _next;
+        private readonly IInputMappingParser _inputMappingParser;
 
-        public MockService(IOptions<MockConfiguration> options, RequestDelegate next)
+        public MockService(IOptions<MockConfiguration> options, 
+            RequestDelegate next,
+            IInputMappingParser inputMappingParser)
         {
             _mockConfiguration = options.Value;
             _next = next;
+            _inputMappingParser = inputMappingParser;
         }
 
         public async Task Invoke(HttpContext context)
         {
             try
             {
-                await InvokeMock(context);
+                await InvokeMock(context, _inputMappingParser);
             }
             catch (Exception ex)
             {
@@ -45,10 +49,10 @@ namespace KestrelMock.Services
             //await _next(context);
         }
 
-        protected virtual async Task<bool> InvokeMock(HttpContext context)
+        protected async Task<bool> InvokeMock(HttpContext context, IInputMappingParser inputMappingParser)
         {
             // TODO we may want to cache this instead of loading mappings with each request.
-            var mappings = await InputMappingParser.ParsePathMappings(_mockConfiguration);
+            var mappings = await inputMappingParser.ParsePathMappings();
 
             string path = context.Request.GetEncodedPathAndQuery();
 

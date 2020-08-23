@@ -10,7 +10,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Moq;
 using Refit;
 using Xunit;
 
@@ -195,9 +197,11 @@ namespace KestrelMock.Tests
         {
             var client = _factory.WithWebHostBuilder(h =>
             {
-                h.Configure(app =>
+                h.ConfigureTestServices(services =>
                 {
-                    app.UseMiddleware<TestErrorMock>();
+                    var inputMappingParserMock = new Mock<IInputMappingParser>();
+                    inputMappingParserMock.Setup(s => s.ParsePathMappings()).Throws(new Exception("error"));
+                    services.AddTransient<IInputMappingParser>(_ => inputMappingParserMock.Object);
                 });
             }).CreateClient();
 
@@ -248,18 +252,6 @@ namespace KestrelMock.Tests
                 var message = await response.Content.ReadAsStringAsync();
                 Assert.Contains("put", message, StringComparison.InvariantCultureIgnoreCase);
             }
-        }
-    }
-
-    public class TestErrorMock : MockService
-    {
-        public TestErrorMock(IOptions<MockConfiguration> options, RequestDelegate next) : base(options, next)
-        {
-        }
-
-        protected override Task<bool> InvokeMock(HttpContext context)
-        {
-            throw new Exception("error");
         }
     }
 }

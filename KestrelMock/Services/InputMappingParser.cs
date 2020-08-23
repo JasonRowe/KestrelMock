@@ -1,5 +1,6 @@
 ﻿using KestrelMock.Domain;
 using KestrelMock.Settings;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,18 +10,25 @@ using System.Threading.Tasks;
 
 namespace KestrelMock.Services
 {
-    public static class InputMappingParser
+    public class InputMappingParser : IInputMappingParser
     {
-        public static async Task<InputMappings> ParsePathMappings(MockConfiguration httpMockSettings)
+        private MockConfiguration mockConfiguration;
+
+        public InputMappingParser(IOptions<MockConfiguration> mockConfiguration)
+        {
+            this.mockConfiguration = mockConfiguration.Value;
+        }
+
+        public async Task<InputMappings> ParsePathMappings()
         {
             var inputMappings = new InputMappings();
 
-            if (httpMockSettings?.Any() != true)
+            if (mockConfiguration?.Any() != true)
             {
                 return inputMappings;
             }
 
-            foreach (var httpMockSetting in httpMockSettings)
+            foreach (var httpMockSetting in mockConfiguration)
             {
                 if (!string.IsNullOrEmpty(httpMockSetting.Request.Path))
                 {
@@ -134,7 +142,7 @@ namespace KestrelMock.Services
                     using var reader = File.OpenText(setting.Response.BodyFromFilePath);
 
                     var bodyFromFile = await reader.ReadToEndAsync();
-                    
+
                     setting.Response.Body = bodyFromFile;
                 }
                 else
