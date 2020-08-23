@@ -471,7 +471,36 @@ namespace KestrelMock.Tests
         [Fact]
         public async Task KestralMock_works_with_Refit()
         {
-            var client = _factory.CreateClient();
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                Path = "/hello/world"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "{ \"hello\": \"world\" }"
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
 
             var testApi = RestService.For<IKestralMockTestApi>(client);
 
