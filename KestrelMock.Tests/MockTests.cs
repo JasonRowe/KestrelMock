@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -10,7 +11,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Moq;
 using Refit;
 using Xunit;
 
@@ -40,12 +43,37 @@ namespace KestrelMock.Tests
         }
 
         [Theory]
-        [InlineData("starts/with/xhsythf")]
+        [InlineData("/starts/with/xhsythf")]
         public async Task CanMockResponseUsingPathStartsWith(string url)
         {
-
             // Arrange
-            var client = _factory.CreateClient();
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure<MockConfiguration>(opts =>
+                    {
+                        opts.Add(new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                PathStartsWith = url,
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                }
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "banana_x"
+                            }
+                        });
+                    });
+
+                });
+            }).CreateClient();
 
             // Act
             var response = await client.GetAsync(url);
@@ -63,7 +91,36 @@ namespace KestrelMock.Tests
         {
 
             // Arrange
-            var client = _factory.CreateClient();
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                PathMatchesRegex = ".+\\d{4}.+"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "regex_is_working"
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
 
             // Act
             var response = await client.GetAsync(url);
@@ -79,7 +136,36 @@ namespace KestrelMock.Tests
         public async Task CanMockResponseUsingPathRegex_NoMatch()
         {
             // Arrange
-            var client = _factory.CreateClient();
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                PathMatchesRegex = ".+\\d{4}.+"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "regex_is_working"
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
 
             // Act
             var response = await client.GetAsync("/test/abcd/xyz");
@@ -88,54 +174,198 @@ namespace KestrelMock.Tests
         }
 
         [Fact]
-        public async Task CanMockGetResponseUsingExactPath()
+        public async Task CanMockGetOrPostResponseUsingExactPath()
         {
-            var client = _factory.CreateClient();
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
 
-            var response = await client.GetAsync("hello/world");
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET", "POST"
+                                },
+                                Path = "/hello/world"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "hello"
+                            }
+                        };
 
-            Assert.Contains("hello", await response.Content.ReadAsStringAsync());
-            Assert.Equal(200, (int)response.StatusCode);
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
+            var responseGet = await client.GetAsync("hello/world");
+
+            Assert.Contains("hello", await responseGet.Content.ReadAsStringAsync());
+            Assert.Equal(200, (int)responseGet.StatusCode);
+
+            var responsePost = await client.PostAsync("hello/world", new StringContent("test"));
+
+            Assert.Contains("hello", await responsePost.Content.ReadAsStringAsync());
+            Assert.Equal(200, (int)responsePost.StatusCode);
         }
 
-        [Fact]
-        public async Task CanMockPosttResponseUsingExactPath()
+        [Theory,
+            InlineData(true, 200),
+            InlineData(false, 404)]
+        public async Task CanMockBodyContainsResponse(bool bodyContains, int statusCode)
         {
-            var client = _factory.CreateClient();
+            var expectedBodyContent = "000000";
 
-            var response = await client.PostAsync("hello/world", new StringContent("test"));
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
 
-            Assert.Contains("hello", await response.Content.ReadAsStringAsync());
-            Assert.Equal(200, (int)response.StatusCode);
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "POST"
+                                },
+                                Path = "/api/estimate",
+                                BodyContains = expectedBodyContent
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "BodyContains Works"
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
+            var content = bodyContains ? new StringContent(expectedBodyContent) : new StringContent("X");
+
+            var response = await client.PostAsync("api/estimate", content);
+
+            if (bodyContains)
+            {
+                Assert.Contains("BodyContains Works", await response.Content.ReadAsStringAsync());
+            }
+
+            Assert.Equal(statusCode, (int)response.StatusCode);
         }
 
-        [Fact]
-        public async Task CanMockBodyContainsResponse()
+        [Theory,
+            InlineData(true, 404),
+            InlineData(false, 200)]
+        public async Task CanMockBodyDoesNotContainResponse(bool bodyContains, int statusCode)
         {
-            var client = _factory.CreateClient();
-            var response = await client.PostAsync("api/estimate", new StringContent("00000"));
+            var unwantedBodyContent = "000000";
 
-            Assert.Contains("BodyContains Works for PUT and POST!", await response.Content.ReadAsStringAsync());
-            Assert.Equal(200, (int)response.StatusCode);
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "POST"
+                                },
+                                Path = "/api/estimate",
+                                BodyDoesNotContain = unwantedBodyContent
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "BodyDoesNotContain Works"
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
+            var content = bodyContains ? new StringContent(unwantedBodyContent) : new StringContent("X");
+
+            var response = await client.PostAsync("api/estimate", content);
+
+            if (!bodyContains)
+            {
+                Assert.Contains("BodyDoesNotContain Works", await response.Content.ReadAsStringAsync());
+            }
+
+            Assert.Equal(statusCode, (int)response.StatusCode);
         }
 
-        [Theory]
-        [InlineData("BANANA", "SPLIT")]
-        public async Task CanReplaceBodyFromUri(string order, string product)
-        {
-            var client = _factory.CreateClient();
-            var response = await client.GetAsync($"/api/orders/{order}/{product}");
-
-            Assert.Equal($"{{\"order\":\"{order}\", \"product\":\"{product}\"}}", await response.Content.ReadAsStringAsync());
-            Assert.Equal(200, (int)response.StatusCode);
-        }
 
         [Theory]
         [InlineData("CHIANTI", "RED", ""),
         InlineData("CHIANTI", "RED", "?text=2")]
         public async Task CanReplaceBodyFromUriWithUriParameters(string wine, string color, string extraQuery)
         {
-            var client = _factory.CreateClient();
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                PathStartsWith = "/api/wines/"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "{ \"wine\" : \"123\", \"color\" : \"abcde\" }",
+                                //TODO: noted bug, replacement does not work correctly for numbers in json
+                                Replace = new Replace
+                                {
+                                    UriTemplate = @"/api/wines/{wine}/{color}",
+                                    BodyReplacements = new System.Collections.Generic.Dictionary<string, string>
+                                    {
+                                        { "wine", wine },
+                                        { "color", color }
+                                    }
+                                }
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
 
             var response = await client.GetAsync($"/api/wines/{wine}/{color}{extraQuery}");
 
@@ -149,22 +379,51 @@ namespace KestrelMock.Tests
         [Fact]
         public async Task CanReplaceBodySingleFieldFromSettings()
         {
-            var client = _factory.CreateClient();
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                PathStartsWith = "/api/replace/"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "{ \"replace\" : \"123\" }",
+                                //TODO: noted bug, replacement does not work correctly for numbers in json
+                                Replace = new Replace
+                                {
+                                    BodyReplacements = new System.Collections.Generic.Dictionary<string, string>
+                                    {
+                                        { "replace", "modified" }
+                                    }
+                                }
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
             var response = await client.GetAsync($"/api/replace/");
 
-            Assert.Equal($"{{\"replace\":\"modified\"}}", await response.Content.ReadAsStringAsync());
+            Assert.Equal($"{{ \"replace\":\"modified\" }}", await response.Content.ReadAsStringAsync());
             Assert.Equal(200, (int)response.StatusCode);
         }
 
-        [Fact]
-        public async Task CanMockBodyDoesNotContainsResponse()
-        {
-            var client = _factory.CreateClient();
-            var response = await client.PostAsync("api/estimate", new StringContent("foo"));
-
-            Assert.Contains("BodyDoesNotContain works for PUT and POST!!", await response.Content.ReadAsStringAsync());
-            Assert.Equal(200, (int)response.StatusCode);
-        }
 
         [Fact]
         public async Task LoadBodyFromRelativePath()
@@ -195,9 +454,11 @@ namespace KestrelMock.Tests
         {
             var client = _factory.WithWebHostBuilder(h =>
             {
-                h.Configure(app =>
+                h.ConfigureTestServices(services =>
                 {
-                    app.UseMiddleware<TestErrorMock>();
+                    var inputMappingParserMock = new Mock<IInputMappingParser>();
+                    inputMappingParserMock.Setup(s => s.ParsePathMappings()).Throws(new Exception("error"));
+                    services.AddTransient<IInputMappingParser>(_ => inputMappingParserMock.Object);
                 });
             }).CreateClient();
 
@@ -210,7 +471,36 @@ namespace KestrelMock.Tests
         [Fact]
         public async Task KestralMock_works_with_Refit()
         {
-            var client = _factory.CreateClient();
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                Path = "/hello/world"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "{ \"hello\": \"world\" }"
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
 
             var testApi = RestService.For<IKestralMockTestApi>(client);
 
@@ -219,18 +509,44 @@ namespace KestrelMock.Tests
             Assert.Contains("world", helloWorld.Hello);
         }
 
+
         [Theory]
-        [InlineData("starts/with/but_does_not_match_verb", "NotFound", "")]
-        [InlineData("starts/with/matches_put_method", "OK", "foo")]
-        [InlineData("/test/1234/xyz", "NotFound", "")]
-        [InlineData("/test/1234/xyz", "OK", "foo")]
-        [InlineData("/hello/world", "NotFound", "")]
-        [InlineData("/hello/world", "OK", "foo")]
-        [InlineData("api/estimate", "OK", "00000")]
-        [InlineData("api/estimate", "OK", "foo")]
-        public async Task KestralMock_matches_using_verb(string url, string statusCode, string body)
+        [InlineData("/hello/world", "NotFound", "", "DELETE")]
+        [InlineData("/hello/world", "OK", "foo3", "PUT")]
+        public async Task KestralMock_matchesPath_using_verb(string url, string statusCode, string body, string method)
         {
-            var client = _factory.CreateClient();
+            // Arrange
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    method
+                                },
+                                Path = url
+                            },
+                            Response = new Response
+                            {
+                                Status = (int)Enum.Parse(typeof(HttpStatusCode), statusCode, true),
+                                Body = body
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
             HttpResponseMessage response;
             if (string.IsNullOrWhiteSpace(body))
             {
@@ -246,20 +562,122 @@ namespace KestrelMock.Tests
             if (response.StatusCode == HttpStatusCode.OK)
             {
                 var message = await response.Content.ReadAsStringAsync();
-                Assert.Contains("put", message, StringComparison.InvariantCultureIgnoreCase);
+                Assert.Contains(body, message, StringComparison.InvariantCultureIgnoreCase);
             }
         }
-    }
 
-    public class TestErrorMock : MockService
-    {
-        public TestErrorMock(IOptions<MockConfiguration> options, RequestDelegate next) : base(options, next)
+        [Theory]
+        [InlineData("/starts/with/but_does_not_match_verb", "NotFound", "", "DELETE")]
+        [InlineData("/starts/with/matches_put_method", "OK", "foo1", "PUT")]
+        public async Task KestralMock_matchesPathStartsWith_using_verb(string url, string statusCode, string body, string method)
         {
+            // Arrange
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    method
+                                },
+                                PathStartsWith = url
+                            },
+                            Response = new Response
+                            {
+                                Status = (int)Enum.Parse(typeof(HttpStatusCode), statusCode, true),
+                                Body = body
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
+            HttpResponseMessage response;
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                response = await client.DeleteAsync(url);
+            }
+            else
+            {
+                response = await client.PutAsync(url, new StringContent(body));
+            }
+
+            Assert.Equal(response.StatusCode.ToString(), statusCode);
+
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                Assert.Contains(body, message, StringComparison.InvariantCultureIgnoreCase);
+            }
         }
 
-        protected override Task<bool> InvokeMock(HttpContext context)
+
+        [Theory]
+        [InlineData("/test/1234/xyz", "NotFound", "", "DELETE")]
+        [InlineData("/test/1234/xyz", "OK", "foo2", "PUT")]
+        public async Task KestralMock_matchesRegex_using_verb(string url, string statusCode, string body, string method)
         {
-            throw new Exception("error");
+            // Arrange
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    method
+                                },
+                                PathMatchesRegex = ".+\\d{4}.+"
+                            },
+                            Response = new Response
+                            {
+                                Status = (int)Enum.Parse(typeof(HttpStatusCode), statusCode, true),
+                                Body = body
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
+            HttpResponseMessage response;
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                response = await client.DeleteAsync(url);
+            }
+            else
+            {
+                response = await client.PutAsync(url, new StringContent(body));
+            }
+
+            Assert.Equal(response.StatusCode.ToString(), statusCode);
+
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                Assert.Contains(body, message, StringComparison.InvariantCultureIgnoreCase);
+            }
         }
+
     }
 }

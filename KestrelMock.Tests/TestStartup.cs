@@ -7,26 +7,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace KestrelMock
 {
-    public class TestStartup
-	{
-		private readonly IConfiguration configuration;
-		private readonly IWebHostEnvironment hostingEnvironment;
-
-		public TestStartup(IConfiguration configuration, IWebHostEnvironment hostingEnvironment)
+    /// <summary>
+    /// Needed because test cannot access a separate assemby
+    /// </summary>
+    public class TestStartup : Startup
+    {
+		public TestStartup(IConfiguration configuration) :
+            base(configuration)
 		{
-			this.configuration = configuration;
-			this.hostingEnvironment = hostingEnvironment;
 		}
-
-		public void ConfigureServices(IServiceCollection services)
-		{
-			services.AddSingleton<MockService>();
-			services.Configure<MockConfiguration>(configuration.GetSection("MockSettings"));
-		}
-
-		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-		{
-			app.UseMockService();
-		}
-	}
+    }
 }

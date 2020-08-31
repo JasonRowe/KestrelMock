@@ -23,23 +23,23 @@ namespace KestrelMock
 	public class Startup
 	{
 		private readonly IConfiguration configuration;
-		private readonly IHostingEnvironment hostingEnvironment;
 
-		public Startup(IConfiguration configuration, IHostingEnvironment hostingEnvironment)
+		public Startup(IConfiguration configuration)
 		{
 			this.configuration = configuration;
-			this.hostingEnvironment = hostingEnvironment;
 		}
 
 		public void ConfigureServices(IServiceCollection services)
 		{
-			services.AddSingleton<MockService>();
-			services.Configure<MockConfiguration>(configuration.GetSection("MockSettings"));
+            services.AddTransient<IBodyWriterService, BodyWriterService>();
+            services.AddTransient<IResponseMatcherService, ResponseMatcherService>();
+			services.AddTransient<IInputMappingParser, InputMappingParser>();
+            services.Configure<MockConfiguration>(configuration.GetSection("MockSettings"));
 		}
 
-		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+		public void Configure(IApplicationBuilder app)
 		{
-			app.UseMockService();
-		}
+            app.UseMiddleware<MockService>();
+        }
 	}
 }
