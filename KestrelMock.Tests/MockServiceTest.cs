@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 
-namespace KestrelMock.Tests
+namespace KestrelMockServer.Tests
 {
     public class MockTestApplicationFactory
     : WebApplicationFactory<TestStartup>

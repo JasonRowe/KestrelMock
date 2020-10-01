@@ -1,7 +1,7 @@
-﻿using KestrelMock.Domain;
-using KestrelMock.Settings;
+﻿using KestrelMockServer.Domain;
+using KestrelMockServer.Settings;
 
-namespace KestrelMock.Services
+namespace KestrelMockServer.Services
 {
     public class ResponseMatcherService : IResponseMatcherService
     {

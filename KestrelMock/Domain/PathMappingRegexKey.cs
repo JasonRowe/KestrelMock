@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace KestrelMock.Domain
+namespace KestrelMockServer.Domain
 {
     public class PathMappingRegexKey
     {

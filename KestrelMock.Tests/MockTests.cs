@@ -3,9 +3,9 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using KestrelMock.Services;
-using KestrelMock.Settings;
-using KestrelMock.Tests.TestHelpers;
+using KestrelMockServer.Services;
+using KestrelMockServer.Settings;
+using KestrelMockServer.Tests.TestHelpers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -17,7 +17,7 @@ using Moq;
 using Refit;
 using Xunit;
 
-namespace KestrelMock.Tests
+namespace KestrelMockServer.Tests
 {
     public class MockTests : IClassFixture<MockTestApplicationFactory>
     {

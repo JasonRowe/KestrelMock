@@ -1,7 +1,7 @@
-﻿using KestrelMock.Domain;
+﻿using KestrelMockServer.Domain;
 using System.Threading.Tasks;
 
-namespace KestrelMock.Services
+namespace KestrelMockServer.Services
 {
     public interface IInputMappingParser
     {

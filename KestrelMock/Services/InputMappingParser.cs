@@ -1,5 +1,5 @@
-﻿using KestrelMock.Domain;
-using KestrelMock.Settings;
+﻿using KestrelMockServer.Domain;
+using KestrelMockServer.Settings;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace KestrelMock.Services
+namespace KestrelMockServer.Services
 {
     public class InputMappingParser : IInputMappingParser
     {

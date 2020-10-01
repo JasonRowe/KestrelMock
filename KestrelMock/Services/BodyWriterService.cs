@@ -1,9 +1,9 @@
-﻿using KestrelMock.Settings;
+﻿using KestrelMockServer.Settings;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace KestrelMock.Services
+namespace KestrelMockServer.Services
 {
     public class BodyWriterService : IBodyWriterService
     {

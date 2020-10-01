@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Refit;
 
-namespace KestrelMock.Tests
+namespace KestrelMockServer.Tests
 {
 	public interface IKestralMockTestApi
 	{

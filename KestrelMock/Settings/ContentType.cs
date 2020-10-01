@@ -1,4 +1,4 @@
-﻿namespace KestrelMock.Settings
+﻿namespace KestrelMockServer.Settings
 {
     public enum ContentType
     {

@@ -1,4 +1,4 @@
-﻿using KestrelMock.Settings;
+﻿using KestrelMockServer.Settings;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Options;
@@ -9,7 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace KestrelMock.Services
+namespace KestrelMockServer.Services
 {
     /// <summary>
     /// this is the mock aspnetcore middleware

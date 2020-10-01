@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace KestrelMock.Domain
+namespace KestrelMockServer.Domain
 {
     public class PathMappingKey
     {

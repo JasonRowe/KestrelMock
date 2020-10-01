@@ -1,6 +1,6 @@
-﻿using KestrelMock.Domain;
+﻿using KestrelMockServer.Domain;
 
-namespace KestrelMock.Settings
+namespace KestrelMockServer.Settings
 {
 	public class HttpMockSetting
 	{

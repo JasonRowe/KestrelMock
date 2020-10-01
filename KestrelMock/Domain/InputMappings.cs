@@ -1,4 +1,4 @@
-﻿namespace KestrelMock.Domain
+﻿namespace KestrelMockServer.Domain
 {
     public class InputMappings
     {

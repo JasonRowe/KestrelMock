@@ -1,7 +1,7 @@
-﻿using KestrelMock.Settings;
+﻿using KestrelMockServer.Settings;
 using System.Collections.Concurrent;
 
-namespace KestrelMock.Domain
+namespace KestrelMockServer.Domain
 {
     public sealed class PathMapping : ConcurrentDictionary<PathMappingKey, HttpMockSetting>
     {

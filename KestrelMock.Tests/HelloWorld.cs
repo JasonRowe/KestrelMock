@@ -1,4 +1,4 @@
-﻿namespace KestrelMock.Tests
+﻿namespace KestrelMockServer.Tests
 {
 	public class HelloWorld
 	{
