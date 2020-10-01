@@ -13,7 +13,7 @@ Create a simple dotnetcore aspnet project and in program.cs write just the follo
 ```csharp
 var config = new ConfigurationBuilde().AddJsonFile("appsettings.json", optional: false).Build();
 
-KestrelMock.Run(config);
+KestrelMock.KestrelMock.Run(config);
 
 ```
 
