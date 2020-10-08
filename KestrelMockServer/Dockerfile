@@ -3,7 +3,7 @@
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-buster-slim AS base
 WORKDIR /app
 EXPOSE 80
-EXPOSE 443
+ENV ASPNETCORE_URLS=http://+:80
 
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
 WORKDIR /src
@@ -22,8 +22,12 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "KestrelMockServer.dll"]
 
+# custom docker image
 #FROM final as FinalLast
 #WORKDIR /app
 #COPY ["responses","responses"]
 #COPY ["appsettings.json", "appsettings.json"]
 #ENTRYPOINT ["dotnet", "KestrelMockServer.dll"]
+
+# docker build --no-cache -t kestrelmock:latest -f .\KestrelMockServer\Dockerfile .
+# docker run -it --rm -p 5000:80 --name myapp kestrelmock:latest

@@ -15,20 +15,28 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "TestMockServerWeb": {
+    "KestrelMockServer": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5000"
       },
-      "applicationUrl": "https://localhost:5001;http://localhost:5000"
+      "applicationUrl": "http://localhost:5000"
     },
     "Docker": {
       "commandName": "Docker",
       "launchBrowser": true,
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "publishAllPorts": true,
-      "useSSL": true
+      "httpPort": 5000,
+      "useSSL": false,
+      //"sslPort": 44360,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        //"ASPNETCORE_URLS": "http://127.0.0.1:80",
+        //"ASPNETCORE_Kestrel__Certificates__Default__Path": "/https/aspnetapp.pfx"
+      }
     }
   }
 }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using System;
 
 namespace TestMockServerWeb
 {
@@ -8,9 +9,12 @@ namespace TestMockServerWeb
         {
 
             var config = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true).Build();
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .Build();
 
-            KestrelMock.KestrelMock.Run(config, "http://localhost:5000");
+            var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS").Split(',');
+
+            KestrelMock.KestrelMock.Run(config, urls);
         }
     }
 }
