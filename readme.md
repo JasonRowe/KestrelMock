@@ -6,6 +6,22 @@
 
 A .Net Core HTTP mock server.
 
+## Use as docker container
+
+Build the image, then you can create a custom image to specify a custom appsetting.json file to replace the default one, and use your costomized image for deploy.
+
+```
+docker build -t my-mock:latest .
+docker run -p 5005:80 my-mock:latest
+```
+
+and then
+```
+docker cp /responses yourcontainer:/responses
+docker cp appsetting.json yourcontainer:appsettings.json
+```
+
+
 ## Example Use
 
 Create a simple dotnetcore aspnet project and in program.cs write just the following lines (Startup.cs is not required, but can be used to provide custom configuration, types are public)

@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KestrelMock", "KestrelMock\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KestrelMock.Tests", "KestrelMock.Tests\KestrelMock.Tests.csproj", "{F642814E-3316-4592-8784-F072186F6A32}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMockServerWeb", "TestMockServerWeb\TestMockServerWeb.csproj", "{107E9515-EAC8-4FBD-BD60-51B9186338B6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KestrelMockServer", "KestrelMockServer\KestrelMockServer.csproj", "{107E9515-EAC8-4FBD-BD60-51B9186338B6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
