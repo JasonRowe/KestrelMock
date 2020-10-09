@@ -3,9 +3,9 @@ using KestrelMock.Settings;
 
 namespace KestrelMock.Services
 {
-    public static class ResponseMatcher
+    public class ResponseMatcherService : IResponseMatcherService
     {
-        public static Response FindMatchingResponseMock(string path, string body, string method, InputMappings mapping)
+        public Response FindMatchingResponseMock(string path, string body, string method, InputMappings mapping)
         {
             Response result = null;
 
@@ -67,7 +67,5 @@ namespace KestrelMock.Services
 
             return result;
         }
-
     }
-
 }

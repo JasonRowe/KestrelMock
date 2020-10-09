@@ -1,7 +1,6 @@
 ﻿using KestrelMock.Settings;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System;
@@ -12,22 +11,35 @@ using System.Threading.Tasks;
 
 namespace KestrelMock.Services
 {
+    /// <summary>
+    /// this is the mock aspnetcore middleware
+    /// </summary>
     public class MockService
     {
         private readonly MockConfiguration _mockConfiguration;
         private readonly RequestDelegate _next;
+        private readonly IInputMappingParser _inputMappingParser;
+        private readonly IResponseMatcherService _responseMatcher;
+        private readonly IBodyWriterService _bodyWriterService;
 
-        public MockService(IOptions<MockConfiguration> options, RequestDelegate next)
+        public MockService(IOptions<MockConfiguration> options, 
+            RequestDelegate next,
+            IInputMappingParser inputMappingParser,
+            IResponseMatcherService responseMatcher,
+            IBodyWriterService bodyWriterService)
         {
             _mockConfiguration = options.Value;
             _next = next;
+            _inputMappingParser = inputMappingParser;
+            _responseMatcher = responseMatcher;
+            _bodyWriterService = bodyWriterService;
         }
 
         public async Task Invoke(HttpContext context)
         {
             try
             {
-                await InvokeMock(context);
+                await InvokeMock(context, _inputMappingParser);
             }
             catch (Exception ex)
             {
@@ -45,10 +57,10 @@ namespace KestrelMock.Services
             //await _next(context);
         }
 
-        protected virtual async Task<bool> InvokeMock(HttpContext context)
+        protected async Task<bool> InvokeMock(HttpContext context, IInputMappingParser inputMappingParser)
         {
             // TODO we may want to cache this instead of loading mappings with each request.
-            var mappings = await InputMappingParser.ParsePathMappings(_mockConfiguration);
+            var mappings = await inputMappingParser.ParsePathMappings();
 
             string path = context.Request.GetEncodedPathAndQuery();
 
@@ -62,7 +74,7 @@ namespace KestrelMock.Services
 
             var method = context.Request.Method;
 
-            var matchResult = ResponseMatcher.FindMatchingResponseMock(path, body, method, mappings);
+            var matchResult = _responseMatcher.FindMatchingResponseMock(path, body, method, mappings);
 
             if (matchResult is null)
             {
@@ -89,7 +101,7 @@ namespace KestrelMock.Services
 
                 if (matchResult.Replace != null)
                 {
-                    resultBody = BodyWriterService.UpdateBody(path, matchResult, resultBody);
+                    resultBody = _bodyWriterService.UpdateBody(path, matchResult, resultBody);
                 }
 
                 await context.Response.WriteAsync(resultBody);

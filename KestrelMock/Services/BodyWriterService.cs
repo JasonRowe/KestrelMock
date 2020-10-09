@@ -5,11 +5,11 @@ using System.Text.RegularExpressions;
 
 namespace KestrelMock.Services
 {
-    public static class BodyWriterService
+    public class BodyWriterService : IBodyWriterService
     {
         private static readonly Regex UriTemplateParameterParser = new Regex(@"\{(?<parameter>[^{}?]*)\}", RegexOptions.Compiled);
 
-        public static string UpdateBody(string path, Response matchResult, string resultBody)
+        public string UpdateBody(string path, Response matchResult, string resultBody)
         {
             if (matchResult.Replace.RegexUriReplacements?.Any() == true)
             {
