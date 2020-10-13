@@ -13,11 +13,11 @@ namespace KestrelMockServer
 		private const string DEFAULT_URL = "http://localhost:60000";
 		private const string MOCK_CONFIG_SECTION = "MockSettings";
 
-		public static void Run(IConfiguration configuration, List<string> urls = null)
+		public static void Run(IConfiguration configuration, params string[] urls)
 		{
 			if (urls == null || !urls.Any())
 			{
-				urls = new List<string> { DEFAULT_URL };
+				urls = new string[] { DEFAULT_URL };
 			}
 
 			var mockSettingsConfigSectionExists = configuration.GetChildren().Any(x => x.Key == MOCK_CONFIG_SECTION);
@@ -30,10 +30,10 @@ namespace KestrelMockServer
 			CreateWebHostBuilder(urls, configuration).Build().Run();
 		}
 
-		public static IWebHostBuilder CreateWebHostBuilder(List<string> Urls, IConfiguration configuration) =>
+		public static IWebHostBuilder CreateWebHostBuilder(string[] urls, IConfiguration configuration) =>
 			WebHost.CreateDefaultBuilder()
 			.UseConfiguration(configuration)
-			.UseUrls(Urls.ToArray())
+			.UseUrls(urls)
 			.UseStartup<Startup>();
 	}
 }
