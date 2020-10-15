@@ -12,7 +12,7 @@ A .Net Core HTTP mock server.
 Create a simple dotnetcore aspnet project and in program.cs write just the following lines (Startup.cs is not required, but can be used to provide custom configuration, types are public)
 
 ```csharp
-var config = new ConfigurationBuilde().AddJsonFile("appsettings.json", optional: false).Build();
+var config = new ConfigurationBuilder().AddJsonFile("appsettings.json", optional: false).Build();
 
 KestrelMock.Run(config);
 

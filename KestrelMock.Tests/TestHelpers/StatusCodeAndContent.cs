@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace KestrelMock.Tests.TestHelpers
+namespace KestrelMockServer.Tests.TestHelpers
 {
 	public class StatusCodeAndContent
 	{

@@ -1,8 +1,8 @@
-﻿using KestrelMock.Settings;
+﻿using KestrelMockServer.Settings;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace KestrelMock.Domain
+namespace KestrelMockServer.Domain
 {
     public sealed class BodyCheckMapping : ConcurrentDictionary<PathMappingKey, List<HttpMockSetting>>
     {

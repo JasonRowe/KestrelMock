@@ -1,6 +1,6 @@
-﻿using KestrelMock.Settings;
+﻿using KestrelMockServer.Settings;
 
-namespace KestrelMock.Services
+namespace KestrelMockServer.Services
 {
     public interface IBodyWriterService
     {

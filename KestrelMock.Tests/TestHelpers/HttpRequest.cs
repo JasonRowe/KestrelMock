@@ -1,7 +1,7 @@
 ﻿using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace KestrelMock.Tests.TestHelpers
+namespace KestrelMockServer.Tests.TestHelpers
 {
 	public static class HttpHelper
 	{

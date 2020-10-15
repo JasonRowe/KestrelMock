@@ -1,3 +1,4 @@
+using KestrelMockServer;
 using Microsoft.Extensions.Configuration;
 using System;
 
@@ -14,7 +15,7 @@ namespace TestMockServerWeb
 
             var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS").Split(',');
 
-            KestrelMock.KestrelMock.Run(config, urls);
+            KestrelMock.Run(config, urls);
         }
     }
 }

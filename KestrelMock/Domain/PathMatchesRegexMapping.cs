@@ -1,8 +1,8 @@
-﻿using KestrelMock.Settings;
+﻿using KestrelMockServer.Settings;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
-namespace KestrelMock.Domain
+namespace KestrelMockServer.Domain
 {
     public sealed class PathMatchesRegexMapping : ConcurrentDictionary<PathMappingRegexKey, HttpMockSetting>
     {

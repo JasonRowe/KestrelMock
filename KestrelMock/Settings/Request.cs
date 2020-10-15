@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace KestrelMock.Settings
+namespace KestrelMockServer.Settings
 {
 	public class Request
 	{
