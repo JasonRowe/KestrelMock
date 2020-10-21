@@ -227,7 +227,6 @@ UriPathReplacements is in the format bodyValue:uriValue
 
 ## DOCKER usage
 
-Atm we didn't yet push the image to a public registry. 
 If you want you can create your own image, and then add a custom appsetting.json and responses folder
 
 ```bash
@@ -254,7 +253,7 @@ If you prefer build your custom image in CI/CD pipelines, you can append this to
 Else just push to a private image registry, and use that as a starting image
 
 ```dockerfile
-FROM final <or private-registry:kestrelmock> as KestrelMockServerBase
+FROM jasonrowe/kestrelmock as KestrelMockServerBase
 WORKDIR /app
 COPY ["responses","responses"]
 COPY ["appsettings.json", "appsettings.json"]
