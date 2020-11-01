@@ -323,7 +323,7 @@ namespace KestrelMockServer.Tests
 
         [Theory]
         [InlineData("CHIANTI", "RED", ""),
-        InlineData("CHIANTI", "RED", "?text=2")]
+        InlineData("CHIANTI", "RED", "?year=1978")]
         public async Task CanReplaceBodyFromUriWithUriParameters(string wine, string color, string extraQuery)
         {
             var client = _factory.WithWebHostBuilder(b =>
@@ -373,6 +373,10 @@ namespace KestrelMockServer.Tests
 
             Assert.Contains($"\"wine\":\"{wine}\"", body);
             Assert.Contains($"\"color\":\"{color}\"", body);
+            if (!String.IsNullOrWhiteSpace(extraQuery))
+            {
+                Assert.Contains($"\"year\":\"1978\"", body);
+            }
             Assert.Equal(200, (int)response.StatusCode);
         }
 
