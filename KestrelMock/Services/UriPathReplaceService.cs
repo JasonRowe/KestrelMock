@@ -1,5 +1,4 @@
 ﻿using KestrelMockServer.Settings;
-using System.Text.RegularExpressions;
 
 namespace KestrelMockServer.Services
 {
@@ -15,24 +14,10 @@ namespace KestrelMockServer.Services
                     matchesOnUri[keyVal.Value] : 
                     keyVal.Value;
 
-                resultBody = RegexBodyRewrite(resultBody, keyVal.Key, valueToReplace);
+                resultBody = resultBody.RegexBodyRewrite(keyVal.Key, valueToReplace);
             }
 
             return resultBody;
-        }
-
-        private static string RegexBodyRewrite(string input, string propertyName, string replacement)
-        {
-            var regex = $"\"{propertyName}\"\\s*:\\s*(?<value>\".+?\")";
-            var finalReplacement = $"\"{propertyName}\":\"{replacement}\"";
-            var resultBody = Regex.Replace(input, regex, $"{finalReplacement}", RegexOptions.Multiline);
-
-            //replaces numbers
-            var numbersRegex = $"\"{propertyName}\"\\s*:\\s*(?<value>\\d+(.\\d+)?)";
-            var numberFinalReplacement = $"\"{propertyName}\":{replacement}";
-            var finalBody = Regex.Replace(resultBody, numbersRegex, $"{numberFinalReplacement}", RegexOptions.Multiline);
-
-            return finalBody;
         }
     }
 

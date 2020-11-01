@@ -29,7 +29,7 @@ namespace KestrelMockServer.Services
             {
                 foreach (var keyVal in matchResult.Replace.BodyReplacements)
                 {
-                    resultBody = BodyWriterService.RegexBodyRewrite(resultBody, keyVal.Key, keyVal.Value);
+                    resultBody = resultBody.RegexBodyRewrite(keyVal.Key, keyVal.Value);
                 }
             }
 
@@ -51,19 +51,10 @@ namespace KestrelMockServer.Services
                 var replacement = pathRegexMatch.Groups.Count == 2 ?
                     pathRegexMatch.Groups[1].Value : pathRegexMatch.Value;
 
-                resultBody = RegexBodyRewrite(resultBody, keyVal.Key, replacement);
+                resultBody = resultBody.RegexBodyRewrite(keyVal.Key, replacement);
             }
 
             return resultBody;
-        }
-
-        private static string RegexBodyRewrite(string input, string propertyName, string replacement)
-        {
-            var regex = $"\"{propertyName}\"\\s*:\\s*\"(?<value>.+?)\"";
-
-            var finalReplacement = $"\"{propertyName}\":\"{replacement}\"";
-
-            return Regex.Replace(input, regex, $"{finalReplacement}");
         }
     }
 
