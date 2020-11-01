@@ -6,7 +6,7 @@ namespace KestrelMockServer.Services
     {
         public string UriPathReplacements(string path, Response matchResult, string resultBody)
         {
-            var matchesOnUri = matchResult.Replace.UriTemplate.Parse(path);
+            var matchesOnUri = new UriTemplate(matchResult.Replace.UriTemplate).Parse(path);
 
             foreach (var keyVal in matchResult.Replace.UriPathReplacements)
             {

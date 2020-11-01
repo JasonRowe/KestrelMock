@@ -350,11 +350,11 @@ namespace KestrelMockServer.Tests
                                 Body = "{ \"wine\" : \"123\", \"color\" : \"abcde\" }",
                                 Replace = new Replace
                                 {
-                                    UriTemplate = new UriTemplate(@"/api/wines/{wine}/{color}"),
+                                    UriTemplate = @"/api/wines/{wine}/{color}",
                                     UriPathReplacements = new System.Collections.Generic.Dictionary<string, string>
                                     {
-                                        { "wine", wine },
-                                        { "color", color }
+                                        { "wine", "{wine}" },
+                                        { "color", "{color}"}
                                     }
                                 }
                             }
@@ -403,12 +403,12 @@ namespace KestrelMockServer.Tests
                                 Body = "{ \"wine\" : \"123\", \"color\" : \"abcde\", \"year\":\"0\" }",
                                 Replace = new Replace
                                 {
-                                    UriTemplate = new UriTemplate(@"/api/wines/{wine}/{color}?year={year}"),
+                                    UriTemplate = @"/api/wines/{wine}/{color}?year={year}",
                                     UriPathReplacements = new System.Collections.Generic.Dictionary<string, string>
                                     {
-                                        { "wine", wine },
-                                        { "color", color },
-                                        { "year", "1978" }
+                                        { "wine", "{wine}" },
+                                        { "color", "{color}" },
+                                        { "year", "{year}" }
                                     }
                                 }
                             }
@@ -461,7 +461,7 @@ namespace KestrelMockServer.Tests
                                 " }",
                                 Replace = new Replace
                                 {
-                                    UriTemplate = new UriTemplate(@"/api/wines/{wine}/{color}?year={year}"),
+                                    UriTemplate = @"/api/wines/{wine}/{color}?year={year}",
                                     UriPathReplacements = new System.Collections.Generic.Dictionary<string, string>
                                     {
                                         { "wine", wine },
@@ -517,7 +517,7 @@ namespace KestrelMockServer.Tests
                                 Body = "{ \"wine\" : \"123\", \"color\" : \"abcde\", \"year\":0 }",
                                 Replace = new Replace
                                 {
-                                    UriTemplate = new UriTemplate(@"/api/wines/{wine}/{color}?year={year}"),
+                                    UriTemplate = @"/api/wines/{wine}/{color}?year={year}",
                                     UriPathReplacements = new System.Collections.Generic.Dictionary<string, string>
                                     {
                                         { "wine", wine },
