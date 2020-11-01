@@ -8,13 +8,17 @@ namespace KestrelMockServer.Services
         {
             var matchesOnUri = new UriTemplate(matchResult.Replace.UriTemplate).Parse(path);
 
-            foreach (var keyVal in matchResult.Replace.UriPathReplacements)
+            foreach (var replacement in matchResult.Replace.UriPathReplacements)
             {
-                var valueToReplace = matchesOnUri.ContainsKey(keyVal.Value) ? 
-                    matchesOnUri[keyVal.Value] : 
-                    keyVal.Value;
+                var key = replacement.Value
+                    .Replace("{", string.Empty)
+                    .Replace("}", string.Empty);
+                
+                var valueToReplace = matchesOnUri.ContainsKey(key) ? 
+                    matchesOnUri[key] : 
+                    replacement.Value;
 
-                resultBody = resultBody.RegexBodyRewrite(keyVal.Key, valueToReplace);
+                resultBody = resultBody.RegexBodyRewrite(replacement.Key, valueToReplace);
             }
 
             return resultBody;
