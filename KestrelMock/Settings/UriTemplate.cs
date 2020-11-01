@@ -34,6 +34,7 @@ namespace KestrelMockServer.Settings
 
         public IDictionary<string, string> Parse(string inputPath)
         {
+            //TODO: make query parameter match optional (and simplify logic)
             string parameterRegexString = PathAndQuery
                .Replace("/", @"\/")
                .Replace("?", @"\?"); //for query prameters
