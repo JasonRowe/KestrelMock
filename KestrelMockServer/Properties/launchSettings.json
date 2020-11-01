@@ -34,7 +34,7 @@
       //"sslPort": 44360,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        //"ASPNETCORE_URLS": "http://127.0.0.1:80",
+        "ASPNETCORE_URLS": "http://*:80"
         //"ASPNETCORE_Kestrel__Certificates__Default__Path": "/https/aspnetapp.pfx"
       }
     }
