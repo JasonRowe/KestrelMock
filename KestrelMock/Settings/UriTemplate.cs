@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
@@ -32,39 +33,43 @@ namespace KestrelMockServer.Settings
             parameters = new List<string>();
         }
 
-        public IDictionary<string, string> Parse(string inputPath)
+        public IDictionary<string, string> Parse(string requestPathAndQuery)
         {
-            //TODO: make query parameter match optional (and simplify logic)
-            string parameterRegexString = PathAndQuery
-               .Replace("/", @"\/")
-               .Replace("?", @"\?"); //for query prameters
+            var inputUri = new Uri(new Uri("http://localhost"), requestPathAndQuery);
 
-            foreach (Match match in ParameterRegex.Matches(PathAndQuery))
+            string pathRegexString = Path.Replace("/", @"\/"); 
+
+            foreach (Match match in ParameterRegex.Matches(pathRegexString))
             {
                 var parameterName = match.Groups["parameter"].Value;
                 parameters.Add(parameterName);
-
-                parameterRegexString = 
-                    parameterRegexString
-                    .Replace(match.Value, 
-                    $"(?<{parameterName}>[^{{}}?]*)");
+                pathRegexString = pathRegexString.Replace(match.Value, $"(?<{parameterName}>[^{{}}?]*)");
             }
 
-            if (!PathAndQuery.Contains("?"))
-            {
-                //accept any optional parameter string (don't care)
-                parameterRegexString = $"{parameterRegexString}\\??";
-            }
-
-            parameterRegexString = $"{parameterRegexString}.*";
-
-            var matches = Regex.Match(inputPath, parameterRegexString);
+            var inputPath = Uri.UnescapeDataString(inputUri.AbsolutePath);
+            var pathMatches = Regex.Match(inputPath, pathRegexString);
 
             var result = new Dictionary<string, string>();
 
             foreach(var parameter in parameters)
             {
-                result.Add(parameter, matches.Groups[parameter].Value);
+                result.Add(parameter, pathMatches.Groups[parameter].Value);
+            }
+
+            var inputQueryParametersKeyValues = System.Web.HttpUtility.ParseQueryString(inputUri.Query);
+
+            var currentQueryParameters = inputQueryParametersKeyValues.AllKeys.ToDictionary(s => s,
+                s => inputQueryParametersKeyValues[s]);
+
+            if (currentQueryParameters.Any())
+            {
+                foreach (var key in QueryParameters.AllKeys)
+                {
+                    if(currentQueryParameters.ContainsKey(key))
+                    {
+                        result.Add(key, currentQueryParameters[key]);
+                    }
+                }
             }
 
             return result;
