@@ -1,5 +1,4 @@
 ﻿using KestrelMockServer.Settings;
-using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
