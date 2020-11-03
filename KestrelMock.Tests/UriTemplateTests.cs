@@ -23,6 +23,20 @@ namespace KestrelMockServer.Tests
         }
 
         [Theory,
+            InlineData("/{name}/{surname}/x/{test}", "/john/reds/x/something?query=hello&x=y"),
+            InlineData("/{name}/{surname}/x/{test}", "/john/reds/x/something")
+        ]
+        public void UriTemplate_MatchesWithoutQuery_Ok(string template, string path)
+        {
+            var x = new UriTemplate(template);
+
+            var result = x.Parse(path);
+            Assert.Equal("john", result["name"]);
+            Assert.Equal("reds", result["surname"]);
+            Assert.Equal("something", result["test"]);
+        }
+
+        [Theory,
             InlineData("/{name}/{surname}/x/{test}?query={query}",
                 "/john/reds/x/something?query=hello&x=y")
         ]

@@ -9,14 +9,9 @@ namespace KestrelMockServer.Settings
 {
     public class UriTemplate
     {
-        private readonly Uri uri;
-
         public string PathAndQuery { get; }
         public string Path { get; }
-        public string Query { get; }
         public NameValueCollection QueryParameters { get; }
-
-        private readonly List<string> parameters;
 
         private static readonly Regex ParameterRegex = 
             new Regex(
@@ -25,16 +20,15 @@ namespace KestrelMockServer.Settings
 
         public UriTemplate(string uriTemplate)
         {
-            uri = new Uri(new Uri("http://localhost"), uriTemplate);
-            PathAndQuery = Uri.UnescapeDataString(uri.PathAndQuery);
+            var uri = new Uri(new Uri("http://localhost"), uriTemplate);
             Path = Uri.UnescapeDataString(uri.AbsolutePath);
-            Query = Uri.UnescapeDataString(uri.Query);
             QueryParameters = System.Web.HttpUtility.ParseQueryString(uri.Query);
-            parameters = new List<string>();
         }
 
         public IDictionary<string, string> Parse(string requestPathAndQuery)
         {
+            var outputParameters = new List<string>();
+
             var inputUri = new Uri(new Uri("http://localhost"), requestPathAndQuery);
 
             string pathRegexString = Path.Replace("/", @"\/"); 
@@ -42,7 +36,7 @@ namespace KestrelMockServer.Settings
             foreach (Match match in ParameterRegex.Matches(pathRegexString))
             {
                 var parameterName = match.Groups["parameter"].Value;
-                parameters.Add(parameterName);
+                outputParameters.Add(parameterName);
                 pathRegexString = pathRegexString.Replace(match.Value, $"(?<{parameterName}>[^{{}}?]*)");
             }
 
@@ -51,15 +45,15 @@ namespace KestrelMockServer.Settings
 
             var result = new Dictionary<string, string>();
 
-            foreach(var parameter in parameters)
+            foreach(var parameter in outputParameters)
             {
                 result.Add(parameter, pathMatches.Groups[parameter].Value);
             }
 
             var inputQueryParametersKeyValues = System.Web.HttpUtility.ParseQueryString(inputUri.Query);
 
-            var currentQueryParameters = inputQueryParametersKeyValues.AllKeys.ToDictionary(s => s,
-                s => inputQueryParametersKeyValues[s]);
+            var currentQueryParameters = inputQueryParametersKeyValues.AllKeys
+                .ToDictionary(s => s, s => inputQueryParametersKeyValues[s]);
 
             if (currentQueryParameters.Any())
             {
@@ -68,6 +62,10 @@ namespace KestrelMockServer.Settings
                     if(currentQueryParameters.ContainsKey(key))
                     {
                         result.Add(key, currentQueryParameters[key]);
+                    }
+                    else
+                    {
+                        result.Add(key, string.Empty);
                     }
                 }
             }
