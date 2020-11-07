@@ -323,8 +323,8 @@ namespace KestrelMockServer.Tests
 
         [Theory]
         [InlineData("CHIANTI", "RED", ""),
-        InlineData("CHIANTI", "RED", "?text=2")]
-        public async Task CanReplaceBodyFromUriWithUriParameters(string wine, string color, string extraQuery)
+        InlineData("CHIANTI", "RED", "?year=1978")]
+        public async Task CanReplaceBodyFromUriParameters(string wine, string color, string extraQuery)
         {
             var client = _factory.WithWebHostBuilder(b =>
             {
@@ -348,14 +348,13 @@ namespace KestrelMockServer.Tests
                             {
                                 Status = 200,
                                 Body = "{ \"wine\" : \"123\", \"color\" : \"abcde\" }",
-                                //TODO: noted bug, replacement does not work correctly for numbers in json
                                 Replace = new Replace
                                 {
                                     UriTemplate = @"/api/wines/{wine}/{color}",
-                                    BodyReplacements = new System.Collections.Generic.Dictionary<string, string>
+                                    UriPathReplacements = new System.Collections.Generic.Dictionary<string, string>
                                     {
-                                        { "wine", wine },
-                                        { "color", color }
+                                        { "wine", "{wine}" },
+                                        { "color", "{color}"}
                                     }
                                 }
                             }
@@ -375,6 +374,177 @@ namespace KestrelMockServer.Tests
             Assert.Contains($"\"color\":\"{color}\"", body);
             Assert.Equal(200, (int)response.StatusCode);
         }
+
+        [Theory]
+        [InlineData("CHIANTI", "RED", "?year=1978")]
+        public async Task CanReplaceBodyFromUriWithQuery(string wine, string color, string extraQuery)
+        {
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                PathStartsWith = "/api/wines/"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "{ \"wine\" : \"123\", \"color\" : \"abcde\", \"year\":\"0\" }",
+                                Replace = new Replace
+                                {
+                                    UriTemplate = @"/api/wines/{wine}/{color}?year={year}",
+                                    UriPathReplacements = new System.Collections.Generic.Dictionary<string, string>
+                                    {
+                                        { "wine", "{wine}" },
+                                        { "color", "{color}" },
+                                        { "year", "{year}" }
+                                    }
+                                }
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
+            var response = await client.GetAsync($"/api/wines/{wine}/{color}{extraQuery}");
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains($"\"wine\":\"{wine}\"", body);
+            Assert.Contains($"\"color\":\"{color}\"", body);
+            Assert.Contains($"\"year\":\"1978\"", body);
+            
+            Assert.Equal(200, (int)response.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("CHIANTI", "RED", "?doesnt=matter")]
+        public async Task CanReplaceBodyWhenMultiple(string wine, string color, string extraQuery)
+        {
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                PathStartsWith = "/api/wines/"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "{ \"wine\" : \"123\", \"color\" : \"abcde\", \"year\": 1978," +
+                                " \"nested\" : { \"color\" : \"x\" }" +
+                                " }",
+                                Replace = new Replace
+                                {
+                                    UriTemplate = @"/api/wines/{wine}/{color}?year={year}",
+                                    UriPathReplacements = new System.Collections.Generic.Dictionary<string, string>
+                                    {
+                                        { "wine", wine },
+                                        { "color", color }
+                                    }
+                                }
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
+            var response = await client.GetAsync($"/api/wines/{wine}/{color}{extraQuery}");
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains($"\"wine\":\"{wine}\"", body);
+            Assert.Contains($", \"color\":\"{color}\"", body);
+            Assert.Contains($"{{ \"color\":\"{color}\"", body);
+            
+            Assert.Equal(200, (int)response.StatusCode);
+        }
+
+
+        [Theory]
+        [InlineData("CHIANTI", "RED", "?year=1978")]
+        public async Task CanReplaceFromUriNumbersInBody(string wine, string color, string extraQuery)
+        {
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                PathStartsWith = "/api/wines/"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "{ \"wine\" : \"123\", \"color\" : \"abcde\", \"year\":0 }",
+                                Replace = new Replace
+                                {
+                                    UriTemplate = @"/api/wines/{wine}/{color}?year={year}",
+                                    UriPathReplacements = new System.Collections.Generic.Dictionary<string, string>
+                                    {
+                                        { "wine", wine },
+                                        { "color", color },
+                                        { "year", "1978" }
+                                    }
+                                }
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
+            var response = await client.GetAsync($"/api/wines/{wine}/{color}{extraQuery}");
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains($"\"wine\":\"{wine}\"", body);
+            Assert.Contains($"\"color\":\"{color}\"", body);
+            Assert.Contains($"\"year\":1978", body);
+
+            Assert.Equal(200, (int)response.StatusCode);
+        }
+
 
         [Fact]
         public async Task CanReplaceBodySingleFieldFromSettings()
@@ -423,7 +593,6 @@ namespace KestrelMockServer.Tests
             Assert.Equal($"{{ \"replace\":\"modified\" }}", await response.Content.ReadAsStringAsync());
             Assert.Equal(200, (int)response.StatusCode);
         }
-
 
         [Fact]
         public async Task LoadBodyFromRelativePath()

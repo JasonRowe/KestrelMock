@@ -34,6 +34,7 @@ namespace KestrelMockServer
             services.AddTransient<IBodyWriterService, BodyWriterService>();
             services.AddTransient<IResponseMatcherService, ResponseMatcherService>();
 			services.AddTransient<IInputMappingParser, InputMappingParser>();
+            services.AddTransient<IUriPathReplaceService, UriPathReplaceService>();
             services.Configure<MockConfiguration>(configuration.GetSection("MockSettings"));
 		}
 
