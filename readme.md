@@ -193,7 +193,7 @@ Some advanced dynamic mocking capabilities are provided for Json body data respo
 }
 ```
 
-### From Uri: Uri template (path only)
+### From Uri: Uri template
 
 UriPathReplacements is in the format bodyValue:uriValue
    
@@ -212,13 +212,14 @@ UriPathReplacements is in the format bodyValue:uriValue
         ],
         "Body": "{\"wine\":\"W\",\"color\":\"C\",\"year\":\"Y\"}",
         "Replace": {
-          "UriTemplate": "wines/{wine}/{color}",
+          "UriTemplate": "wines/{wine}/{color}?year={year}",
           "BodyReplacements": {
             "year": "1987"
           },
           "UriPathReplacements": {
             "wine": "{wine}",
-            "color": "{color}"
+            "color": "{color}",
+            "year":"{year}"
           }
         }
       }
@@ -226,6 +227,12 @@ UriPathReplacements is in the format bodyValue:uriValue
 ```
 
 ## DOCKER usage
+
+you can just run kestrel mock default template configuration with
+
+```bash
+docker run -p 5006:5000 -e ASPNETCORE_URLS=http://*:5000 jasonrowe/kestrelmock
+```
 
 If you want you can create your own image, and then add a custom appsetting.json and responses folder
 
