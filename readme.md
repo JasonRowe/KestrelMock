@@ -7,14 +7,14 @@
 A .Net Core HTTP mock server.
 
 
-## Example Use
+## Example Nuget Reference Usage
 
-Create a simple dotnetcore aspnet project and in program.cs write just the following lines (Startup.cs is not required, but can be used to provide custom configuration, types are public)
+For direct use in a test project you can add the KestralMock nuget package and RunAsync. This will startup the webserver and return so your tests can use the mock API's configured in appsettings.json. See example appsetting.json below.
 
 ```csharp
-var config = new ConfigurationBuilder().AddJsonFile("appsettings.json", optional: false).Build();
+var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 
-KestrelMock.Run(config);
+KestrelMock.RunAsync(config);
 
 ```
 
