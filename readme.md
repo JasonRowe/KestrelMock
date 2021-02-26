@@ -9,7 +9,7 @@ A .Net Core HTTP mock server.
 
 ## Example Nuget Reference Usage
 
-For direct use in a test project you can add the KestralMock nuget package and RunAsync. This will startup the webserver and return so your tests can use the mock API's configured in appsettings.json. See example appsetting.json below.
+For direct use in a test project you can add the KestralMock nuget package and RunAsync. This will startup the webserver and return so your tests can use the mock API's configured in appsettings.json. See example appsetting.json below. By default, the mock endpoints will use http://localhost:60000.
 
 ```csharp
 var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
