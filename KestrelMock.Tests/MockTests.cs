@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -33,6 +34,15 @@ namespace KestrelMockServer.Tests
             {
                 Assert.Contains("Configuration must include 'MockSettings' section", ex.Message);
             }
+        }
+
+        [Fact]
+        public void RunAsyncReturns()
+        {
+            var builder = new ConfigurationBuilder().AddJsonFile($"appsettings.json", optional: false);
+            var configuration = builder.Build();
+            var runAsyncResult = KestrelMock.RunAsync(configuration);
+            Assert.NotNull(runAsyncResult);
         }
 
         private readonly MockTestApplicationFactory _factory;
