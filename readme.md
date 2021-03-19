@@ -18,6 +18,16 @@ KestrelMock.RunAsync(config);
 
 ```
 
+## Example Nuget Reference Usage (CreateWebHostBuilder)
+
+For direct use in a test project you can add the KestralMock nuget package and call CreateWebHostBuilder. CreateWebHostBuilder will return the web host so you can controll the start and stop of the mock server.
+
+```csharp
+webHost = KestrelMock.CreateWebHostBuilder(new string[] { YourUrl }, YourConfigurationRoot).Build();
+webHost.Start();
+```
+
+
 ## Example Server Usage (Run)
 Server will run and not return until the process shuts down. See KestrelMockServer project as an example.
 
@@ -27,6 +37,7 @@ var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 KestrelMock.Run(config);
 
 ```
+
 
 ## Install
 
