@@ -45,7 +45,7 @@ KestrelMock.Run(config);
 dotnet add package KestrelMock
 ```
 
-## Example appsettings.json
+## Example Mocks setup via appsettings.json
 
 ```json
 {
