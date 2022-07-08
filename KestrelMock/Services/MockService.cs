@@ -22,7 +22,7 @@ namespace KestrelMockServer.Services
         private readonly IResponseMatcherService _responseMatcher;
         private readonly IBodyWriterService _bodyWriterService;
 
-        public MockService(IOptions<MockConfiguration> options, 
+        public MockService(IOptions<MockConfiguration> options,
             RequestDelegate next,
             IInputMappingParser inputMappingParser,
             IResponseMatcherService responseMatcher,
@@ -39,7 +39,15 @@ namespace KestrelMockServer.Services
         {
             try
             {
-                await InvokeMock(context, _inputMappingParser);
+                if (context.Request.Path.StartsWithSegments(new PathString("/kestrelmock/mocks")))
+                {
+                    await InvokeAdminApi(context, _inputMappingParser);
+                }
+                else
+                {
+                    await InvokeMock(context, _inputMappingParser);
+                }
+
             }
             catch (Exception ex)
             {
@@ -52,14 +60,13 @@ namespace KestrelMockServer.Services
 
                 await context.Response.WriteAsync(JsonConvert.SerializeObject(errorResponse));
             }
-            
+
             //breakes execution
             //await _next(context);
         }
 
         protected async Task<bool> InvokeMock(HttpContext context, IInputMappingParser inputMappingParser)
         {
-            // TODO we may want to cache this instead of loading mappings with each request.
             var mappings = await inputMappingParser.ParsePathMappings();
 
             string path = context.Request.GetEncodedPathAndQuery();
@@ -105,6 +112,31 @@ namespace KestrelMockServer.Services
                 }
 
                 await context.Response.WriteAsync(resultBody);
+            }
+
+            return true;
+        }
+
+        protected async Task<bool> InvokeAdminApi(HttpContext context, IInputMappingParser inputMappingParser)
+        {
+
+            if (context.Request.Method == HttpMethods.Get)
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.OK;
+                await context.Response.WriteAsync(JsonConvert.SerializeObject(_mockConfiguration));
+            }
+            else if (context.Request.Method == HttpMethods.Post)
+            {
+                using StreamReader reader = new StreamReader(context.Request.Body);
+                var body = await reader.ReadToEndAsync();
+                var setting = JsonConvert.DeserializeObject<HttpMockSetting>(body);
+                _mockConfiguration.Add(setting);
+            }
+            else if (context.Request.Method == HttpMethods.Delete)
+            {
+                var pathNotrailingString = context.Request.Path.ToString().TrimEnd('/');
+                var id = pathNotrailingString.Split('/').Last();
+                _mockConfiguration.RemoveAll(setting => setting.Id == id);
             }
 
             return true;

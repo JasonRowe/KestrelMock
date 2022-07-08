@@ -1,21 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Threading.Tasks;
 using KestrelMockServer.Services;
 using KestrelMockServer.Settings;
-using KestrelMockServer.Tests.TestHelpers;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Moq;
+using Newtonsoft.Json;
 using Refit;
+using System;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace KestrelMockServer.Tests
@@ -437,7 +432,7 @@ namespace KestrelMockServer.Tests
             Assert.Contains($"\"wine\":\"{wine}\"", body);
             Assert.Contains($"\"color\":\"{color}\"", body);
             Assert.Contains($"\"year\":\"1978\"", body);
-            
+
             Assert.Equal(200, (int)response.StatusCode);
         }
 
@@ -494,7 +489,7 @@ namespace KestrelMockServer.Tests
             Assert.Contains($"\"wine\":\"{wine}\"", body);
             Assert.Contains($", \"color\":\"{color}\"", body);
             Assert.Contains($"{{ \"color\":\"{color}\"", body);
-            
+
             Assert.Equal(200, (int)response.StatusCode);
         }
 
@@ -858,5 +853,183 @@ namespace KestrelMockServer.Tests
             }
         }
 
+        [Fact]
+        public async Task Can_Retrieve_Mocks_With_Id()
+        {
+            var url = "kestrelmock/mocks/";
+            var mockId = Guid.NewGuid();
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Id = mockId.ToString(),
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                Path = "/hello/world"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "{ \"hello\": \"world\" }"
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
+            HttpResponseMessage response = await client.GetAsync(url);
+
+
+            Assert.Equal("OK", response.StatusCode.ToString());
+
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                Assert.Contains(mockId.ToString(), message, StringComparison.InvariantCultureIgnoreCase);
+            }
+        }
+
+        [Fact]
+        public async Task Can_Add_Mocks_With_Id()
+        {
+            var url = "kestrelmock/mocks/";
+            var mockId = Guid.NewGuid().ToString();
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Id = mockId,
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                Path = "/hello/world"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "{ \"hello\": \"world\" }"
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
+            var settingToAddMockId = Guid.NewGuid().ToString();
+            var settingToAdd = new HttpMockSetting
+            {
+                Id = settingToAddMockId,
+                Request = new Request
+                {
+                    Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                    Path = "/hello/world"
+                },
+                Response = new Response
+                {
+                    Status = 200,
+                    Body = "{ \"hello\": \"world\" }"
+                }
+            };
+
+            HttpResponseMessage response = await client.PostAsync(url, new StringContent(JsonConvert.SerializeObject(settingToAdd)));
+            Assert.Equal("OK", response.StatusCode.ToString());
+
+            HttpResponseMessage getResponse = await client.GetAsync(url);
+
+            Assert.Equal("OK", getResponse.StatusCode.ToString());
+            if (getResponse.StatusCode == HttpStatusCode.OK)
+            {
+                var message = await getResponse.Content.ReadAsStringAsync();
+                Assert.Contains(settingToAddMockId, message, StringComparison.InvariantCultureIgnoreCase);
+            }
+
+        }
+
+        [Fact]
+        public async Task Can_Delete_Mocks_by_Id()
+        {
+            var url = "kestrelmock/mocks/";
+            var mockId = Guid.NewGuid().ToString();
+            var client = _factory.WithWebHostBuilder(b =>
+            {
+                b.ConfigureTestServices(services =>
+                {
+
+                    services.Configure((Action<MockConfiguration>)(opts =>
+                    {
+                        opts.Clear();
+                        var setting = new HttpMockSetting
+                        {
+                            Id = mockId,
+                            Request = new Request
+                            {
+                                Methods = new System.Collections.Generic.List<string>
+                                {
+                                    "GET"
+                                },
+                                Path = "/hello/world"
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = "{ \"hello\": \"world\" }"
+                            }
+                        };
+
+                        opts.Add(setting);
+                    }));
+
+                });
+            }).CreateClient();
+
+
+            HttpResponseMessage getResponse = await client.GetAsync(url);
+
+            Assert.Equal("OK", getResponse.StatusCode.ToString());
+            if (getResponse.StatusCode == HttpStatusCode.OK)
+            {
+                var message = await getResponse.Content.ReadAsStringAsync();
+                Assert.Contains(mockId, message, StringComparison.InvariantCultureIgnoreCase);
+            }
+
+            HttpResponseMessage deleteResponse = await client.DeleteAsync(url + mockId);
+
+            HttpResponseMessage checkResultsResponse = await client.GetAsync(url);
+
+            Assert.Equal("OK", checkResultsResponse.StatusCode.ToString());
+            if (getResponse.StatusCode == HttpStatusCode.OK)
+            {
+                var message = await checkResultsResponse.Content.ReadAsStringAsync();
+                Assert.DoesNotContain(mockId, message, StringComparison.InvariantCultureIgnoreCase);
+            }
+
+        }
     }
 }
