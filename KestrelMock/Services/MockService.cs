@@ -41,7 +41,7 @@ namespace KestrelMockServer.Services
             {
                 if (context.Request.Path.StartsWithSegments(new PathString("/kestrelmock/mocks")))
                 {
-                    await InvokeAdminApi(context, _inputMappingParser);
+                    await InvokeAdminApi(context);
                 }
                 else
                 {
@@ -117,7 +117,7 @@ namespace KestrelMockServer.Services
             return true;
         }
 
-        protected async Task<bool> InvokeAdminApi(HttpContext context, IInputMappingParser inputMappingParser)
+        protected async Task<bool> InvokeAdminApi(HttpContext context)
         {
 
             if (context.Request.Method == HttpMethods.Get)

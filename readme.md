@@ -157,6 +157,15 @@ dotnet add package KestrelMock
    ]
 }
 ```
+## Example Mocks setup via admin endpoint
+
+admin endpoint '/kestrelmock/mocks'
+
+GET - returns list of mock settings objects.
+
+POST - body is expected to be HttpMockSetting and adds new mock
+
+DELETE - '/kestrelmock/mocks/YOURID' will delete by HttpMockSetting Id.
 
 ## Dynamic Mock
 
