@@ -75,7 +75,7 @@ namespace KestrelMockServer.Services
 
             if (context.Request.Body != null)
             {
-                using StreamReader reader = new StreamReader(context.Request.Body);
+                using StreamReader reader = new StreamReader(context.Request.Body, leaveOpen: true);
                 body = await reader.ReadToEndAsync();
             }
 
@@ -127,7 +127,7 @@ namespace KestrelMockServer.Services
             }
             else if (context.Request.Method == HttpMethods.Post)
             {
-                using StreamReader reader = new StreamReader(context.Request.Body);
+                using StreamReader reader = new StreamReader(context.Request.Body, leaveOpen: true);
                 var body = await reader.ReadToEndAsync();
                 var setting = JsonConvert.DeserializeObject<HttpMockSetting>(body);
                 _mockConfiguration.Add(setting);
