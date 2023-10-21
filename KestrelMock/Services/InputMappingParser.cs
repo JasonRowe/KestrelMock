@@ -45,8 +45,8 @@ namespace KestrelMockServer.Services
 
                             if (inputMappings.BodyCheckMapping.ContainsKey(key))
                             {
-                                var bodyContainesList = inputMappings.BodyCheckMapping[key];
-                                bodyContainesList.Add(httpMockSetting);
+                                var bodyContainsList = inputMappings.BodyCheckMapping[key];
+                                bodyContainsList.Add(httpMockSetting);
                             }
                             else
                             {

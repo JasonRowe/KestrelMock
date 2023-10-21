@@ -7,7 +7,9 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Threading.Tasks;
+using KestrelMockServer.Domain;
 
 namespace KestrelMockServer.Services
 {
@@ -21,6 +23,8 @@ namespace KestrelMockServer.Services
         private readonly IInputMappingParser _inputMappingParser;
         private readonly IResponseMatcherService _responseMatcher;
         private readonly IBodyWriterService _bodyWriterService;
+
+        private readonly Watcher _watcher = new Watcher();
 
         public MockService(IOptions<MockConfiguration> options,
             RequestDelegate next,
@@ -41,11 +45,15 @@ namespace KestrelMockServer.Services
             {
                 if (context.Request.Path.StartsWithSegments(new PathString("/kestrelmock/mocks")))
                 {
-                    await InvokeAdminApi(context);
+                    await InvokeAdminApi(context, _watcher);
+                }
+                else if (context.Request.Path.StartsWithSegments(new PathString("/kestrelmock/observe")))
+                {
+                    await InvokeObserve(context, _watcher);
                 }
                 else
                 {
-                    await InvokeMock(context, _inputMappingParser);
+                    await InvokeMock(context, _inputMappingParser, _watcher);
                 }
 
             }
@@ -65,7 +73,7 @@ namespace KestrelMockServer.Services
             //await _next(context);
         }
 
-        protected async Task<bool> InvokeMock(HttpContext context, IInputMappingParser inputMappingParser)
+        protected async Task<bool> InvokeMock(HttpContext context, IInputMappingParser inputMappingParser, Watcher watcher)
         {
             var mappings = await inputMappingParser.ParsePathMappings();
 
@@ -81,17 +89,17 @@ namespace KestrelMockServer.Services
 
             var method = context.Request.Method;
 
-            var matchResult = _responseMatcher.FindMatchingResponseMock(path, body, method, mappings);
+            var matchedResponse = _responseMatcher.FindMatchingResponseMock(path, body, method, mappings, watcher);
 
-            if (matchResult is null)
+            if (matchedResponse is null)
             {
                 context.Response.StatusCode = (int)HttpStatusCode.NotFound;
                 return true;
             }
 
-            if (matchResult.Headers?.Any() == true)
+            if (matchedResponse.Headers?.Any() == true)
             {
-                foreach (var header in matchResult.Headers)
+                foreach (var header in matchedResponse.Headers)
                 {
                     foreach (var key in header.Keys)
                     {
@@ -100,15 +108,15 @@ namespace KestrelMockServer.Services
                 }
             }
 
-            context.Response.StatusCode = matchResult.Status;
+            context.Response.StatusCode = matchedResponse.Status;
 
-            if (!string.IsNullOrWhiteSpace(matchResult.Body))
+            if (!string.IsNullOrWhiteSpace(matchedResponse.Body))
             {
-                string resultBody = matchResult.Body;
+                string resultBody = matchedResponse.Body;
 
-                if (matchResult.Replace != null)
+                if (matchedResponse.Replace != null)
                 {
-                    resultBody = _bodyWriterService.UpdateBody(path, matchResult, resultBody);
+                    resultBody = _bodyWriterService.UpdateBody(path, matchedResponse, resultBody);
                 }
 
                 await context.Response.WriteAsync(resultBody);
@@ -117,7 +125,7 @@ namespace KestrelMockServer.Services
             return true;
         }
 
-        protected async Task<bool> InvokeAdminApi(HttpContext context)
+        protected async Task<bool> InvokeAdminApi(HttpContext context, Watcher watcher)
         {
 
             if (context.Request.Method == HttpMethods.Get)
@@ -131,15 +139,71 @@ namespace KestrelMockServer.Services
                 var body = await reader.ReadToEndAsync();
                 var setting = JsonConvert.DeserializeObject<HttpMockSetting>(body);
                 _mockConfiguration.Add(setting);
+                await context.Response.WriteAsync(JsonConvert.SerializeObject(MockAddSuccess(setting.Watch)));
             }
             else if (context.Request.Method == HttpMethods.Delete)
             {
                 var pathNotrailingString = context.Request.Path.ToString().TrimEnd('/');
                 var id = pathNotrailingString.Split('/').Last();
+
+                var watch = _mockConfiguration.FirstOrDefault(setting => setting.Id == id).Watch;
+                if (watch != null)
+                {
+                    watcher.Remove(watch.Id);
+                }
+
                 _mockConfiguration.RemoveAll(setting => setting.Id == id);
             }
 
             return true;
+        }
+
+        private DynamicMockAddedResponse MockAddSuccess(Watch watch)
+        {
+            return new DynamicMockAddedResponse
+            {
+                Message = watch == null
+                    ? "Dynamic mock added without observability."
+                    : @"Dynamic mock added with observability, call /kestrelmock/observe/[watchId]",
+                Watch = watch
+            };
+        }
+
+        protected async Task<bool> InvokeObserve(HttpContext context, Watcher watcher)
+        {
+            if (context.Request.Method == HttpMethods.Get)
+            {
+                var watchId = GetWatchGuid(context);
+                if (watchId == null)
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    await context.Response.WriteAsync("Please specify the WatchId Guid.");
+                }
+                else
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.OK;
+                    await context.Response.WriteAsync(JsonConvert.SerializeObject(watcher.GetWatchLogs(watchId.Value)));
+                }
+            }
+
+            return true;
+        }
+
+        private static Guid? GetWatchGuid(HttpContext context)
+        {
+            var path = context.Request.Path.Value;
+            var observePosition = path.IndexOf("observe", StringComparison.InvariantCultureIgnoreCase);
+            var partialPath = path.Substring(observePosition);
+            var requestPathSegments = partialPath.Split('/');
+            if (requestPathSegments.Length > 1)
+            {
+                if (Guid.TryParse(requestPathSegments[1], out var watchId))
+                {
+                    return watchId;
+                }
+            }
+
+            return null;
         }
     }
 

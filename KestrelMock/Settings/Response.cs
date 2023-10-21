@@ -14,5 +14,5 @@ namespace KestrelMockServer.Settings
 		public string BodyFromFilePath { get; set; }
 
 		public Replace Replace { get; set; }
-	}
+    }
 }
