@@ -167,6 +167,73 @@ POST - body is expected to be HttpMockSetting and adds new mock
 
 DELETE - '/kestrelmock/mocks/YOURID' will delete by HttpMockSetting Id.
 
+## Watch requests using observe endpoint
+
+observe endpoint '/kestrelmock/observe/[Watch id]'
+
+When adding the "Watch" object to your mock settings, an observe endpoint will be created to retrieve request data. The watch id can be added directly or retrieved via response of mock creation.
+
+```
+### Example post request to create mock with "Watch" object
+
+POST https://localhost:44391/kestrelmock/mocks
+Content-Type: application/json
+
+{
+   "Request": {
+      "Methods": [ "PUT" ],
+      "PathStartsWith": "/api/supplier"
+   },
+   "Response": {
+      "Status": 200,
+      "Headers": [
+         {
+         "Content-Type": "application/json"
+         }
+      ],
+      "Body": "{\"hello\":\"test\"}",
+      "BodyFromFilePath":null,
+      "Replace": null
+   },
+   "Watch": {
+      "RequestLogLimit": 10,
+      "Id": "c3f57f2c-b989-46eb-93a3-247a6caebe6d"
+   }
+}
+```
+
+Example of mock creation response from request above
+```
+{"Message":"Dynamic mock added with observability, call /kestrelmock/observe/c3f57f2c-b989-46eb-93a3-247a6caebe6d","Watch":{"Id":"c3f57f2c-b989-46eb-93a3-247a6caebe6d","RequestLogLimit":10}}
+```
+
+If you send the following request to a mocked endpoint which has a watch.
+```
+### Send request to mocked endpoint with body data to test
+
+PUT https://localhost:44391/api/supplier
+Content-Type: application/json
+
+{
+   "Test" : "foo"
+}
+```
+
+Then you can call the observe endpoint to see that request body from previous requests up to the limit. The request to the observe endpoint will clear all current data from the watch queue.
+```
+### See your requests using observe endpoint
+
+GET https://localhost:44391/kestrelmock/observe/c3f57f2c-b989-46eb-93a3-247a6caebe6d
+Content-Type: application/json
+```
+
+The observe endpoint will give you back the body. Example respons:
+
+```
+[{"Path":"/api/supplier","Body":"{\r\n   \"Test\" : \"foo\"\r\n}","Method":"PUT"}]
+```
+
+
 ## Dynamic Mock
 
 Some advanced dynamic mocking capabilities are provided for Json body data responses
