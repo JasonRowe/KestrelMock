@@ -72,7 +72,6 @@ namespace KestrelMockServer.Tests
             var message = await response.Content.ReadAsStringAsync();
             Assert.Contains("banana_x", message);
 
-
             //I can observe the data PUT to the mock
             var observe = await client.GetAsync($"/kestrelmock/observe/{watchId}");
 

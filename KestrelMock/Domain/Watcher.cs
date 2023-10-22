@@ -19,7 +19,7 @@ namespace KestrelMockServer.Domain
             }
 
             watchLogs[watch.Id].Enqueue(watchLog);
-            if (watchLogs[watch.Id].Count > watch.NumberOfRequests)
+            if (watchLogs[watch.Id].Count > watch.RequestLogLimit)
             {
                 watchLogs[watch.Id].Dequeue();
             }

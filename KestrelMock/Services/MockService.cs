@@ -139,7 +139,7 @@ namespace KestrelMockServer.Services
                 var body = await reader.ReadToEndAsync();
                 var setting = JsonConvert.DeserializeObject<HttpMockSetting>(body);
                 _mockConfiguration.Add(setting);
-                await context.Response.WriteAsync(JsonConvert.SerializeObject(MockAddSuccess(setting.Watch)));
+                await context.Response.WriteAsync(JsonConvert.SerializeObject(DynamicMockAddedResponse.Create(setting.Watch)));
             }
             else if (context.Request.Method == HttpMethods.Delete)
             {
@@ -156,17 +156,6 @@ namespace KestrelMockServer.Services
             }
 
             return true;
-        }
-
-        private DynamicMockAddedResponse MockAddSuccess(Watch watch)
-        {
-            return new DynamicMockAddedResponse
-            {
-                Message = watch == null
-                    ? "Dynamic mock added without observability."
-                    : @"Dynamic mock added with observability, call /kestrelmock/observe/[watchId]",
-                Watch = watch
-            };
         }
 
         protected async Task<bool> InvokeObserve(HttpContext context, Watcher watcher)

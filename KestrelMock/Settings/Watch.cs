@@ -6,6 +6,6 @@ namespace KestrelMockServer.Settings
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        public int NumberOfRequests { get; set; } = 10;
+        public int RequestLogLimit { get; set; } = 10;
     }
 }
