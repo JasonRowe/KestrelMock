@@ -7,5 +7,7 @@
         public Request Request { get; set; }
 
         public Response Response { get; set; }
+
+        public Watch Watch { get; set; }
     }
 }

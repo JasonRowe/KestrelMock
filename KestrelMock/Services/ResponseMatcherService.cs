@@ -5,9 +5,21 @@ namespace KestrelMockServer.Services
 {
     public class ResponseMatcherService : IResponseMatcherService
     {
-        public Response FindMatchingResponseMock(string path, string body, string method, InputMappings mapping)
+        public Response FindMatchingResponseMock(string path, string body, string method, InputMappings mapping, Watcher watcher)
         {
-            Response result = null;
+            var observableResponse = FindMatchingObservableResponse(path, body, method, mapping);
+
+            if (observableResponse?.Watch != null)
+            {
+                watcher.Log(path, body, method, observableResponse.Watch);
+            }
+
+            return observableResponse?.Response;
+        }
+
+        private ObservableResponse FindMatchingObservableResponse(string path, string body, string method, InputMappings mapping)
+        {
+            ObservableResponse result = null;
 
             var pathMappingKey = new PathMappingKey
             {
@@ -17,7 +29,7 @@ namespace KestrelMockServer.Services
 
             if (mapping.PathMapping.ContainsKey(pathMappingKey) && mapping.PathMapping[pathMappingKey].Request.Methods.Contains(method))
             {
-                result = mapping.PathMapping[pathMappingKey].Response;
+                result = new ObservableResponse(mapping.PathMapping[pathMappingKey].Response, mapping.PathMapping[pathMappingKey].Watch);
             }
 
             if (result == null && mapping.PathStartsWithMapping != null)
@@ -26,7 +38,7 @@ namespace KestrelMockServer.Services
                 {
                     if (path.StartsWith(pathStart.Key.Path) && pathStart.Value.Request.Methods.Contains(method))
                     {
-                        result = pathStart.Value.Response;
+                        result = new ObservableResponse(pathStart.Value.Response, pathStart.Value.Watch);
                     }
                 }
             }
@@ -37,7 +49,7 @@ namespace KestrelMockServer.Services
                 {
                     if (pathRegex.Key.Regex.IsMatch(path) && pathRegex.Value.Request.Methods.Contains(method))
                     {
-                        result = pathRegex.Value.Response;
+                        result = new ObservableResponse(pathRegex.Value.Response, pathRegex.Value.Watch);
                     }
                 }
             }
@@ -52,14 +64,14 @@ namespace KestrelMockServer.Services
                     {
                         if (body.Contains(possibleResult.Request.BodyContains) && possibleResult.Request.Methods.Contains(method))
                         {
-                            result = possibleResult.Response;
+                            result = new ObservableResponse(possibleResult.Response, possibleResult.Watch);
                         }
                     }
                     else if (!string.IsNullOrEmpty(possibleResult.Request.BodyDoesNotContain) && possibleResult.Request.Methods.Contains(method))
                     {
                         if (!body.Contains(possibleResult.Request.BodyDoesNotContain))
                         {
-                            result = possibleResult.Response;
+                            result = new ObservableResponse(possibleResult.Response, possibleResult.Watch);
                         }
                     }
                 }
