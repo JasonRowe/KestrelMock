@@ -143,10 +143,10 @@ namespace KestrelMockServer.Services
             }
             else if (context.Request.Method == HttpMethods.Delete)
             {
-                var pathNotrailingString = context.Request.Path.ToString().TrimEnd('/');
-                var id = pathNotrailingString.Split('/').Last();
+                var pathNoTrailingString = context.Request.Path.ToString().TrimEnd('/');
+                var id = pathNoTrailingString.Split('/').Last();
 
-                var watch = _mockConfiguration.FirstOrDefault(setting => setting.Id == id).Watch;
+                var watch = _mockConfiguration.FirstOrDefault(setting => setting.Id == id)?.Watch;
                 if (watch != null)
                 {
                     watcher.Remove(watch.Id);
