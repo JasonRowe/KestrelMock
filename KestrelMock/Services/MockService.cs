@@ -139,14 +139,14 @@ namespace KestrelMockServer.Services
                 var body = await reader.ReadToEndAsync();
                 var setting = JsonConvert.DeserializeObject<HttpMockSetting>(body);
                 _mockConfiguration.Add(setting);
-                await context.Response.WriteAsync(JsonConvert.SerializeObject(DynamicMockAddedResponse.Create(setting.Watch)));
+                await context.Response.WriteAsync(JsonConvert.SerializeObject(DynamicMockAddedResponse.Create(setting)));
             }
             else if (context.Request.Method == HttpMethods.Delete)
             {
-                var pathNotrailingString = context.Request.Path.ToString().TrimEnd('/');
-                var id = pathNotrailingString.Split('/').Last();
+                var pathNoTrailingString = context.Request.Path.ToString().TrimEnd('/');
+                var id = pathNoTrailingString.Split('/').Last();
 
-                var watch = _mockConfiguration.FirstOrDefault(setting => setting.Id == id).Watch;
+                var watch = _mockConfiguration.FirstOrDefault(setting => setting.Id == id)?.Watch;
                 if (watch != null)
                 {
                     watcher.Remove(watch.Id);
