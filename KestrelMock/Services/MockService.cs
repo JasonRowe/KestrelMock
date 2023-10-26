@@ -2,12 +2,11 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Threading.Tasks;
 using KestrelMockServer.Domain;
 
@@ -66,7 +65,7 @@ namespace KestrelMockServer.Services
                     error = ex.ToString()
                 };
 
-                await context.Response.WriteAsync(JsonConvert.SerializeObject(errorResponse));
+                await context.Response.WriteAsync(JsonSerializer.Serialize(errorResponse));
             }
 
             //breakes execution
@@ -131,15 +130,15 @@ namespace KestrelMockServer.Services
             if (context.Request.Method == HttpMethods.Get)
             {
                 context.Response.StatusCode = (int)HttpStatusCode.OK;
-                await context.Response.WriteAsync(JsonConvert.SerializeObject(_mockConfiguration));
+                await context.Response.WriteAsync(JsonSerializer.Serialize(_mockConfiguration));
             }
             else if (context.Request.Method == HttpMethods.Post)
             {
                 using StreamReader reader = new StreamReader(context.Request.Body);
                 var body = await reader.ReadToEndAsync();
-                var setting = JsonConvert.DeserializeObject<HttpMockSetting>(body);
+                var setting = JsonSerializer.Deserialize<HttpMockSetting>(body);
                 _mockConfiguration.Add(setting);
-                await context.Response.WriteAsync(JsonConvert.SerializeObject(DynamicMockAddedResponse.Create(setting)));
+                await context.Response.WriteAsync(JsonSerializer.Serialize(DynamicMockAddedResponse.Create(setting)));
             }
             else if (context.Request.Method == HttpMethods.Delete)
             {
@@ -171,7 +170,7 @@ namespace KestrelMockServer.Services
                 else
                 {
                     context.Response.StatusCode = (int)HttpStatusCode.OK;
-                    await context.Response.WriteAsync(JsonConvert.SerializeObject(watcher.GetWatchLogs(watchId.Value)));
+                    await context.Response.WriteAsync(JsonSerializer.Serialize(watcher.GetWatchLogs(watchId.Value)));
                 }
             }
 
