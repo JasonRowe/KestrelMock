@@ -8,14 +8,28 @@ namespace KestrelMockServer.Services
 
         public Watch Watch { get; set; }
 
-        public static DynamicMockAddedResponse Create(Watch watch)
+        public static DynamicMockAddedResponse Create(HttpMockSetting settings)
         {
+            if (settings == null)
+            {
+                return new DynamicMockAddedResponse()
+                {
+                    Message = "Dynamic mock settings were null, please check your request."
+                };
+            }
+
+            if (settings.Watch == null)
+            {
+                return new DynamicMockAddedResponse
+                {
+                    Message = "Dynamic mock added without observability."
+                };
+            }
+
             return new DynamicMockAddedResponse
             {
-                Message = watch == null
-                    ? "Dynamic mock added without observability."
-                    : $@"Dynamic mock added with observability, call /kestrelmock/observe/{watch.Id}",
-                Watch = watch
+                Message = $@"Dynamic mock added with observability, call /kestrelmock/observe/{settings.Watch.Id}",
+                Watch = settings.Watch
             };
         }
     }

@@ -139,7 +139,7 @@ namespace KestrelMockServer.Services
                 var body = await reader.ReadToEndAsync();
                 var setting = JsonConvert.DeserializeObject<HttpMockSetting>(body);
                 _mockConfiguration.Add(setting);
-                await context.Response.WriteAsync(JsonConvert.SerializeObject(DynamicMockAddedResponse.Create(setting.Watch)));
+                await context.Response.WriteAsync(JsonConvert.SerializeObject(DynamicMockAddedResponse.Create(setting)));
             }
             else if (context.Request.Method == HttpMethods.Delete)
             {
