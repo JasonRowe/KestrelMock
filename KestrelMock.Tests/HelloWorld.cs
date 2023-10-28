@@ -1,7 +1,6 @@
-﻿namespace KestrelMockServer.Tests
+﻿namespace KestrelMock.Tests;
+
+public class HelloWorld
 {
-    public class HelloWorld
-    {
-        public string Hello { get; set; }
-    }
+    public string Hello { get; set; }
 }

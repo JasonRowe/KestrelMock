@@ -1,20 +1,15 @@
-﻿using KestrelMockServer.Services;
-using KestrelMockServer.Settings;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
+﻿using KestrelMockServer;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
-namespace KestrelMockServer
+namespace KestrelMock.Tests;
+
+/// <summary>
+/// Needed because test cannot access a separate assembly
+/// </summary>
+public class TestStartup : Startup
 {
-    /// <summary>
-    /// Needed because test cannot access a separate assemby
-    /// </summary>
-    public class TestStartup : Startup
+    public TestStartup(IConfiguration configuration) :
+        base(configuration)
     {
-		public TestStartup(IConfiguration configuration) :
-            base(configuration)
-		{
-		}
     }
 }

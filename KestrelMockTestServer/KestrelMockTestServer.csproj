@@ -21,6 +21,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\KestrelMock\KestrelMock.csproj" />
+    <ProjectReference Include="..\KestrelMock\KestrelMockServer.csproj" />
   </ItemGroup>
 </Project>
