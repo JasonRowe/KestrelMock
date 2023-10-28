@@ -4,7 +4,7 @@
 [![Nuget version](https://img.shields.io/nuget/v/kestrelmock)](https://www.nuget.org/packages/kestrelmock)
 
 
-A .Net Core HTTP mock server.
+A .Net HTTP mock server.
 
 
 ## Example Nuget Reference Usage (RunAsync)
