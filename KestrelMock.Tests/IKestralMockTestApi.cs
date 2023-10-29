@@ -1,11 +1,10 @@
 ﻿using System.Threading.Tasks;
 using Refit;
 
-namespace KestrelMockServer.Tests
+namespace KestrelMock.Tests;
+
+public interface IKestralMockTestApi
 {
-	public interface IKestralMockTestApi
-	{
-		[Get("/hello/world")]
-		Task<HelloWorld> GetHelloWorldWorld();
-	}
+    [Get("/hello/world")]
+    Task<HelloWorld> GetHelloWorldWorld();
 }

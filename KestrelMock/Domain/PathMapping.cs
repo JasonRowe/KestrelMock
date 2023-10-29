@@ -7,5 +7,4 @@ namespace KestrelMockServer.Domain
     {
 
     }
-
 }
