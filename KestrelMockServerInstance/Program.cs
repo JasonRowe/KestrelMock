@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Extensions.Configuration;
 
-namespace KestrelMockTestServer;
+namespace KestrelMockServerInstance;
 
 public class Program
 {
