@@ -7,15 +7,15 @@ ENV ASPNETCORE_URLS=http://+:80
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
-COPY ["KestrelMockServer/KestrelMockServer.csproj", "KestrelMockServer/"]
-COPY ["KestrelMock/KestrelMock.csproj", "KestrelMock/"]
-RUN dotnet restore "KestrelMockServer/KestrelMockServer.csproj"
+COPY ["KestrelMockServerInstance/KestrelMockServerInstance.csproj", "KestrelMockServerInstance/"]
+COPY ["KestrelMock/KestrelMockServer.csproj", "KestrelMock/"]
+RUN dotnet restore "KestrelMockServerInstance/KestrelMockServerInstance.csproj"
 COPY . .
-WORKDIR "/src/KestrelMockServer"
-RUN dotnet build "KestrelMockServer.csproj" -c Release -o /app/build
+WORKDIR "/src/KestrelMockServerInstance"
+RUN dotnet build "KestrelMockServerInstance.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "KestrelMockServer.csproj" -c Release -o /app/publish
+RUN dotnet publish "KestrelMockServerInstance.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app

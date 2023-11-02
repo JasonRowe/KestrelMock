@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace KestrelMockTestServer;
+namespace KestrelMockServerInstance;
 
 public class Startup
 {
