@@ -29,7 +29,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./KestrelMockServer/Dockerfile
+          file: ./KestrelMockServerInstance/Dockerfile
           push: true
           tags: jasonrowe/kestrelmock:latest
       -
