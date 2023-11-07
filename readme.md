@@ -361,5 +361,5 @@ FROM jasonrowe/kestrelmock as KestrelMockServerBase
 WORKDIR /app
 COPY ["responses","responses"]
 COPY ["appsettings.json", "appsettings.json"]
-ENTRYPOINT ["dotnet", "KestrelMockServer.dll"]
+ENTRYPOINT ["dotnet", "KestrelMockServerInstance.dll"]
 ```
