@@ -26,12 +26,12 @@ jobs:
     - name: Create Test Coverage Badge
       uses: simon-k/dotnet-code-coverage-badge@v1.0.0
       id: create_coverage_badge
-        with:
-          label: Unit Test Coverage
-          color: brightgreen
-          path: KestrelMock.Tests/TestResults/coverage.opencover.xml
-          gist-filename: code-coverage.json
-          gist-id: fe23c15603763c6eb09eea7bd38ba23f
-          gist-auth-token: ${{ secrets.GIST_AUTH_TOKEN }}       
+      with:
+        label: Unit Test Coverage
+        color: brightgreen
+        path: KestrelMock.Tests/TestResults/coverage.opencover.xml
+        gist-filename: code-coverage.json
+        gist-id: fe23c15603763c6eb09eea7bd38ba23f
+        gist-auth-token: ${{ secrets.GIST_AUTH_TOKEN }}       
     - name: Print code coverage
       run: echo "Code coverage percentage ${{steps.create_coverage_badge.outputs.percentage}}%"
