@@ -1,10 +1,10 @@
 # Kestrel Mock  
+A .NET HTTP mock server.
 
 ![Build status](https://github.com/JasonRowe/KestrelMock/workflows/.NET%20Core/badge.svg?branch=master)
+[![ci](https://github.com/JasonRowe/KestrelMock/actions/workflows/docker.yml/badge.svg)](https://github.com/JasonRowe/KestrelMock/actions/workflows/docker.yml)
 [![Nuget version](https://img.shields.io/nuget/v/kestrelmock)](https://www.nuget.org/packages/kestrelmock)
-
-
-A .Net HTTP mock server.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE.md)
 
 
 ## Example Nuget Reference Usage (RunAsync)
@@ -323,7 +323,7 @@ UriPathReplacements is in the format bodyValue:uriValue
 }
 ```
 
-## DOCKER usage
+## DOCKER
 
 you can just run kestrel mock default template configuration with
 
