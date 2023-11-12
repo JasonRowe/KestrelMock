@@ -3,7 +3,7 @@ A .NET HTTP mock server.
 
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/JasonRowe/fe23c15603763c6eb09eea7bd38ba23f/raw/code-coverage.json)
 [![Unit Tests](https://github.com/JasonRowe/KestrelMock/actions/workflows/dotnetcore.yml/badge.svg)](https://github.com/JasonRowe/KestrelMock/actions/workflows/dotnetcore.yml)
-[![ci](https://github.com/JasonRowe/KestrelMock/actions/workflows/docker.yml/badge.svg)](https://github.com/JasonRowe/KestrelMock/actions/workflows/docker.yml)
+[![docker](https://github.com/JasonRowe/KestrelMock/actions/workflows/docker.yml/badge.svg)](https://github.com/JasonRowe/KestrelMock/actions/workflows/docker.yml)
 [![Nuget version](https://img.shields.io/nuget/v/kestrelmock)](https://www.nuget.org/packages/kestrelmock)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE.md)
 
