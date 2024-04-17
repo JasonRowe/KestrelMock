@@ -1,4 +1,6 @@
-﻿using KestrelMockServer.Services;
+﻿using System.Collections.Generic;
+using System.Linq;
+using KestrelMockServer.Services;
 using KestrelMockServer.Settings;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -24,7 +26,17 @@ namespace KestrelMockServer
             services.AddTransient<IResponseMatcherService, ResponseMatcherService>();
             services.AddTransient<IInputMappingParser, InputMappingParser>();
             services.AddTransient<IUriPathReplaceService, UriPathReplaceService>();
-            services.Configure<MockConfiguration>(configuration.GetSection("MockSettings"));
+            services.Configure<MockConfiguration>(opts => 
+            {
+                var mockSettings = configuration
+                    .GetSection("MockSettings")?
+                    .Get<List<HttpMockSetting>>() ?? Enumerable.Empty<HttpMockSetting>();
+
+                foreach (var setting in mockSettings)
+                {
+                    opts.TryAdd(setting.Id, setting);
+                }
+            });
         }
 
         public void Configure(IApplicationBuilder app)

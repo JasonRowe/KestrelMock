@@ -130,14 +130,14 @@ namespace KestrelMockServer.Services
             if (context.Request.Method == HttpMethods.Get)
             {
                 context.Response.StatusCode = (int)HttpStatusCode.OK;
-                await context.Response.WriteAsync(JsonSerializer.Serialize(_mockConfiguration));
+                await context.Response.WriteAsync(JsonSerializer.Serialize(_mockConfiguration.Select(m => m.Value)));
             }
             else if (context.Request.Method == HttpMethods.Post)
             {
                 using StreamReader reader = new StreamReader(context.Request.Body);
                 var body = await reader.ReadToEndAsync();
                 var setting = JsonSerializer.Deserialize<HttpMockSetting>(body);
-                _mockConfiguration.Add(setting);
+                _mockConfiguration.TryAdd(setting.Id, setting);
                 await context.Response.WriteAsync(JsonSerializer.Serialize(DynamicMockAddedResponse.Create(setting)));
             }
             else if (context.Request.Method == HttpMethods.Delete)
@@ -145,13 +145,17 @@ namespace KestrelMockServer.Services
                 var pathNoTrailingString = context.Request.Path.ToString().TrimEnd('/');
                 var id = pathNoTrailingString.Split('/').Last();
 
-                var watch = _mockConfiguration.FirstOrDefault(setting => setting.Id == id)?.Watch;
-                if (watch != null)
-                {
-                    watcher.Remove(watch.Id);
-                }
+                _mockConfiguration.TryGetValue(id, out var mockFound);
 
-                _mockConfiguration.RemoveAll(setting => setting.Id == id);
+                if (mockFound != null)
+                {
+                    if (mockFound.Watch != null)
+                    {
+                        watcher.Remove(mockFound.Watch.Id);
+                    }
+
+                    _mockConfiguration.TryRemove(mockFound.Id, out var mockRemoved);
+                }
             }
 
             return true;

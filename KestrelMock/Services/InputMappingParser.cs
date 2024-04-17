@@ -28,8 +28,10 @@ namespace KestrelMockServer.Services
                 return inputMappings;
             }
 
-            foreach (var httpMockSetting in mockConfiguration)
+            foreach (var mockConfigItem in mockConfiguration)
             {
+                var httpMockSetting = mockConfigItem.Value;
+
                 if (!string.IsNullOrEmpty(httpMockSetting.Request.Path))
                 {
                     if (!string.IsNullOrEmpty(httpMockSetting.Request.BodyContains)

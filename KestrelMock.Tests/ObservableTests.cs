@@ -31,7 +31,7 @@ public class ObservableTests : IClassFixture<MockTestApplicationFactory>
             {
                 services.Configure<MockConfiguration>(opts =>
                 {
-                    opts.Add(new HttpMockSetting
+                    var setting = new HttpMockSetting
                     {
                         Request = new Request
                         {
@@ -50,7 +50,8 @@ public class ObservableTests : IClassFixture<MockTestApplicationFactory>
                         {
                             Id = watchId
                         }
-                    });
+                    };
+                    opts.TryAdd(setting.Id, setting);
                 });
 
             });

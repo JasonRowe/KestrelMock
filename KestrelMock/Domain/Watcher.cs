@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using KestrelMockServer.Settings;
 
@@ -7,7 +7,7 @@ namespace KestrelMockServer.Domain
 {
     public class Watcher
     {
-        private readonly Dictionary<Guid, Queue<WatchLog>> watchLogs = new Dictionary<Guid, Queue<WatchLog>>();
+        private readonly ConcurrentDictionary<Guid, Queue<WatchLog>> watchLogs = new ConcurrentDictionary<Guid, Queue<WatchLog>>();
 
         public void Log(string path, string body, string method, Watch watch)
         {
@@ -15,7 +15,7 @@ namespace KestrelMockServer.Domain
 
             if (!watchLogs.ContainsKey(watch.Id))
             {
-                watchLogs.Add(watch.Id, new Queue<WatchLog>());
+                watchLogs.TryAdd(watch.Id, new Queue<WatchLog>());
             }
 
             watchLogs[watch.Id].Enqueue(watchLog);
@@ -48,7 +48,7 @@ namespace KestrelMockServer.Domain
         {
             if (watchLogs.ContainsKey(watchId))
             {
-                this.watchLogs.Remove(watchId);
+                this.watchLogs.TryRemove(watchId, out var mockFound);
             }
         }
     }
