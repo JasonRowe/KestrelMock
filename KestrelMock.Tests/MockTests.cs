@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using KestrelMockServer.Services;
 using KestrelMockServer.Settings;
@@ -8,7 +11,6 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using Newtonsoft.Json;
 using Refit;
 using Xunit;
 
@@ -58,7 +60,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
 
                 services.Configure<MockConfiguration>(opts =>
                 {
-                    opts.Add(new HttpMockSetting
+                    var setting = new HttpMockSetting
                     {
                         Request = new Request
                         {
@@ -73,9 +75,9 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                             Status = 200,
                             Body = "banana_x"
                         }
-                    });
+                    };
+                    opts.TryAdd(setting.Id, setting);
                 });
-
             });
         }).CreateClient();
 
@@ -86,6 +88,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
         response.EnsureSuccessStatusCode(); // Status Code 200-299
 
         var message = await response.Content.ReadAsStringAsync();
+
         Assert.Contains("banana_x", message);
     }
 
@@ -120,7 +123,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -165,7 +168,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -205,7 +208,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -255,7 +258,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -306,7 +309,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -364,7 +367,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -418,7 +421,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -475,7 +478,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -532,7 +535,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -586,7 +589,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -669,7 +672,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -714,7 +717,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -770,7 +773,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -827,7 +830,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -864,13 +867,12 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
 
                 services.Configure((Action<MockConfiguration>)(opts =>
                 {
-                    opts.Clear();
                     var setting = new HttpMockSetting
                     {
                         Id = mockId.ToString(),
                         Request = new Request
                         {
-                            Methods = new System.Collections.Generic.List<string>
+                            Methods = new List<string>
                             {
                                 "GET"
                             },
@@ -883,7 +885,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -897,7 +899,12 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
         if (response.StatusCode == HttpStatusCode.OK)
         {
             var message = await response.Content.ReadAsStringAsync();
-            Assert.Contains(mockId.ToString(), message, StringComparison.InvariantCultureIgnoreCase);
+
+            var mocks = JsonSerializer.Deserialize<List<HttpMockSetting>>(message);
+            Assert.Equal(3, mocks.Count);
+
+            var currentMock = mocks.FirstOrDefault(m => m.Id == mockId.ToString());
+            Assert.NotNull(currentMock);
         }
     }
 
@@ -919,7 +926,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         Id = mockId,
                         Request = new Request
                         {
-                            Methods = new System.Collections.Generic.List<string>
+                            Methods = new List<string>
                             {
                                 "GET"
                             },
@@ -932,7 +939,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });
@@ -944,7 +951,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
             Id = settingToAddMockId,
             Request = new Request
             {
-                Methods = new System.Collections.Generic.List<string>
+                Methods = new List<string>
                 {
                     "GET"
                 },
@@ -957,7 +964,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
             }
         };
 
-        HttpResponseMessage response = await client.PostAsync(url, new StringContent(JsonConvert.SerializeObject(settingToAdd)));
+        HttpResponseMessage response = await client.PostAsync(url, new StringContent(JsonSerializer.Serialize(settingToAdd)));
         Assert.Equal("OK", response.StatusCode.ToString());
 
         HttpResponseMessage getResponse = await client.GetAsync(url);
@@ -1002,7 +1009,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
                         }
                     };
 
-                    opts.Add(setting);
+                    opts.TryAdd(setting.Id, setting);
                 }));
 
             });

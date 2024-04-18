@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
 
 namespace KestrelMockServer.Settings
 {
-    public class MockConfiguration : List<HttpMockSetting>
+    public class MockConfiguration : ConcurrentDictionary<string, HttpMockSetting>
 	{
 	}
 }
