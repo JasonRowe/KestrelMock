@@ -93,6 +93,100 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
     }
 
     [Theory]
+    [InlineData("/starts/with/xhsythf")]
+    public async Task CanMockResponseUsingPathStartsWithAndBodyContains(string url)
+    {
+        // Arrange
+        var client = _factory.WithWebHostBuilder(b =>
+        {
+            b.ConfigureTestServices(services =>
+            {
+
+                services.Configure<MockConfiguration>(opts =>
+                {
+                    var setting = new HttpMockSetting
+                    {
+                        Request = new Request
+                        {
+                            PathStartsWith = url,
+                            BodyContains = "test",
+                            Methods = new System.Collections.Generic.List<string>
+                            {
+                                "POST"
+                            }
+                        },
+                        Response = new Response
+                        {
+                            Status = 200,
+                            Body = "banana_x"
+                        }
+                    };
+                    opts.TryAdd(setting.Id, setting);
+                });
+            });
+        }).CreateClient();
+
+        var body = new StringContent("test");
+
+        // Act
+        var response = await client.PostAsync(url, body);
+
+        // Assert
+        response.EnsureSuccessStatusCode(); // Status Code 200-299
+
+        var message = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("banana_x", message);
+    }
+
+    [Theory]
+    [InlineData("/starts/with/xhsythf")]
+    public async Task CanMockResponseUsingPathStartsWithAndBodyDoesNotContain(string url)
+    {
+        // Arrange
+        var client = _factory.WithWebHostBuilder(b =>
+        {
+            b.ConfigureTestServices(services =>
+            {
+
+                services.Configure<MockConfiguration>(opts =>
+                {
+                    var setting = new HttpMockSetting
+                    {
+                        Request = new Request
+                        {
+                            PathStartsWith = url,
+                            BodyDoesNotContain = "test",
+                            Methods = new System.Collections.Generic.List<string>
+                            {
+                                "POST"
+                            }
+                        },
+                        Response = new Response
+                        {
+                            Status = 200,
+                            Body = "banana_x"
+                        }
+                    };
+                    opts.TryAdd(setting.Id, setting);
+                });
+            });
+        }).CreateClient();
+
+        var body = new StringContent("doesNotContain");
+
+        // Act
+        var response = await client.PostAsync(url, body);
+
+        // Assert
+        response.EnsureSuccessStatusCode(); // Status Code 200-299
+
+        var message = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("banana_x", message);
+    }
+
+    [Theory]
     [InlineData("/test/1234/xyz")]
     public async Task CanMockResponseUsingPathRegex_Matches(string url)
     {
@@ -131,6 +225,106 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
 
         // Act
         var response = await client.GetAsync(url);
+
+        // Assert
+        response.EnsureSuccessStatusCode(); // Status Code 200-299
+
+        var message = await response.Content.ReadAsStringAsync();
+        Assert.Contains("regex_is_working", message);
+    }
+
+    [Theory]
+    [InlineData("/test/1234/xyz")]
+    public async Task CanMockResponseUsingPathRegex_Matches_AndBodyContains(string url)
+    {
+
+        // Arrange
+        var client = _factory.WithWebHostBuilder(b =>
+        {
+            b.ConfigureTestServices(services =>
+            {
+
+                services.Configure((Action<MockConfiguration>)(opts =>
+                {
+                    opts.Clear();
+                    var setting = new HttpMockSetting
+                    {
+                        Request = new Request
+                        {
+                            Methods = new System.Collections.Generic.List<string>
+                            {
+                                "POST"
+                            },
+                            BodyContains = "test",
+                            PathMatchesRegex = ".+\\d{4}.+"
+                        },
+                        Response = new Response
+                        {
+                            Status = 200,
+                            Body = "regex_is_working"
+                        }
+                    };
+
+                    opts.TryAdd(setting.Id, setting);
+                }));
+
+            });
+        }).CreateClient();
+
+        var content = new StringContent("test");
+
+        // Act
+        var response = await client.PostAsync(url, content);
+
+        // Assert
+        response.EnsureSuccessStatusCode(); // Status Code 200-299
+
+        var message = await response.Content.ReadAsStringAsync();
+        Assert.Contains("regex_is_working", message);
+    }
+
+    [Theory]
+    [InlineData("/test/1234/xyz")]
+    public async Task CanMockResponseUsingPathRegex_Matches_AndBodyDoesNotContain(string url)
+    {
+
+        // Arrange
+        var client = _factory.WithWebHostBuilder(b =>
+        {
+            b.ConfigureTestServices(services =>
+            {
+
+                services.Configure((Action<MockConfiguration>)(opts =>
+                {
+                    opts.Clear();
+                    var setting = new HttpMockSetting
+                    {
+                        Request = new Request
+                        {
+                            Methods = new System.Collections.Generic.List<string>
+                            {
+                                "POST"
+                            },
+                            BodyDoesNotContain = "test",
+                            PathMatchesRegex = ".+\\d{4}.+"
+                        },
+                        Response = new Response
+                        {
+                            Status = 200,
+                            Body = "regex_is_working"
+                        }
+                    };
+
+                    opts.TryAdd(setting.Id, setting);
+                }));
+
+            });
+        }).CreateClient();
+
+        var content = new StringContent("notContain");
+
+        // Act
+        var response = await client.PostAsync(url, content);
 
         // Assert
         response.EnsureSuccessStatusCode(); // Status Code 200-299

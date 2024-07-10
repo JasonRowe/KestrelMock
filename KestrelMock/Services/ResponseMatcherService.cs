@@ -29,7 +29,9 @@ namespace KestrelMockServer.Services
 
             if (mapping.PathMapping.ContainsKey(pathMappingKey) && mapping.PathMapping[pathMappingKey].Request.Methods.Contains(method))
             {
-                result = new ObservableResponse(mapping.PathMapping[pathMappingKey].Response, mapping.PathMapping[pathMappingKey].Watch);
+                var pathMapping = mapping.PathMapping[pathMappingKey];
+
+                result = new ObservableResponse(pathMapping.Response, pathMapping.Watch);
             }
 
             if (result == null && mapping.PathStartsWithMapping != null)
@@ -38,7 +40,12 @@ namespace KestrelMockServer.Services
                 {
                     if (path.StartsWith(pathStart.Key.Path) && pathStart.Value.Request.Methods.Contains(method))
                     {
-                        result = new ObservableResponse(pathStart.Value.Response, pathStart.Value.Watch);
+                        result = CheckBodyMapping(body, method, pathStart.Value);
+
+                        if (result == null)
+                        {
+                            result = new ObservableResponse(pathStart.Value.Response, pathStart.Value.Watch);
+                        }
                     }
                 }
             }
@@ -49,7 +56,12 @@ namespace KestrelMockServer.Services
                 {
                     if (pathRegex.Key.Regex.IsMatch(path) && pathRegex.Value.Request.Methods.Contains(method))
                     {
-                        result = new ObservableResponse(pathRegex.Value.Response, pathRegex.Value.Watch);
+                        result = CheckBodyMapping(body, method, pathRegex.Value);
+
+                        if (result == null)
+                        {
+                            result = new ObservableResponse(pathRegex.Value.Response, pathRegex.Value.Watch);
+                        }
                     }
                 }
             }
@@ -60,24 +72,31 @@ namespace KestrelMockServer.Services
 
                 foreach (var possibleResult in possibleResults)
                 {
-                    if (!string.IsNullOrEmpty(possibleResult.Request.BodyContains))
-                    {
-                        if (body.Contains(possibleResult.Request.BodyContains) && possibleResult.Request.Methods.Contains(method))
-                        {
-                            result = new ObservableResponse(possibleResult.Response, possibleResult.Watch);
-                        }
-                    }
-                    else if (!string.IsNullOrEmpty(possibleResult.Request.BodyDoesNotContain) && possibleResult.Request.Methods.Contains(method))
-                    {
-                        if (!body.Contains(possibleResult.Request.BodyDoesNotContain))
-                        {
-                            result = new ObservableResponse(possibleResult.Response, possibleResult.Watch);
-                        }
-                    }
+                    result = CheckBodyMapping(body, method, possibleResult);
                 }
             }
 
             return result;
+        }
+
+        private static ObservableResponse CheckBodyMapping(string body, string method, HttpMockSetting possibleResult)
+        {
+            if (!string.IsNullOrEmpty(possibleResult.Request.BodyContains))
+            {
+                if (body.Contains(possibleResult.Request.BodyContains) && possibleResult.Request.Methods.Contains(method))
+                {
+                    return new ObservableResponse(possibleResult.Response, possibleResult.Watch);
+                }
+            }
+            else if (!string.IsNullOrEmpty(possibleResult.Request.BodyDoesNotContain) && possibleResult.Request.Methods.Contains(method))
+            {
+                if (!body.Contains(possibleResult.Request.BodyDoesNotContain))
+                {
+                    return new ObservableResponse(possibleResult.Response, possibleResult.Watch);
+                }
+            }
+
+            return null;
         }
     }
 }
