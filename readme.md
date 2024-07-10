@@ -335,7 +335,7 @@ docker run -p 5006:5000 -e ASPNETCORE_URLS=http://*:5000 jasonrowe/kestrelmock
 If you want you can create your own image, and then add a custom appsetting.json and responses folder
 
 ```bash
-docker build --no-cache -t kestrelmock:latest -f .\KestrelMockServer\Dockerfile .
+docker build --no-cache -t kestrelmock:latest -f .\KestrelMockServerInstance\Dockerfile .
 
 docker run -it --rm -p 5000:80 --name myapp kestrelmock:latest
 ```
