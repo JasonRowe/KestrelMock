@@ -1,4 +1,5 @@
-﻿using KestrelMockServer.Domain;
+﻿using System.Linq;
+using KestrelMockServer.Domain;
 using KestrelMockServer.Settings;
 
 namespace KestrelMockServer.Services
@@ -91,6 +92,13 @@ namespace KestrelMockServer.Services
             else if (!string.IsNullOrEmpty(possibleResult.Request.BodyDoesNotContain) && possibleResult.Request.Methods.Contains(method))
             {
                 if (!body.Contains(possibleResult.Request.BodyDoesNotContain))
+                {
+                    return new ObservableResponse(possibleResult.Response, possibleResult.Watch);
+                }
+            }
+            else if ((possibleResult.Request.BodyContainsArray?.Any() ?? false) && possibleResult.Request.Methods.Contains(method))
+            {
+                if (possibleResult.Request.BodyContainsArray.All(b => body.Contains(b)))
                 {
                     return new ObservableResponse(possibleResult.Response, possibleResult.Watch);
                 }

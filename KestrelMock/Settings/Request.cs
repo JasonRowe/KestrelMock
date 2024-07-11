@@ -12,6 +12,8 @@ namespace KestrelMockServer.Settings
 
 		public string BodyContains { get; set; }
 
+        public List<string>? BodyContainsArray {  get; set; }
+
 		public string BodyDoesNotContain { get; set; }
 
 		public string PathMatchesRegex { get; set; }
