@@ -35,7 +35,8 @@ namespace KestrelMockServer.Services
                 if (!string.IsNullOrEmpty(httpMockSetting.Request.Path))
                 {
                     if (!string.IsNullOrEmpty(httpMockSetting.Request.BodyContains)
-                        || !string.IsNullOrEmpty(httpMockSetting.Request.BodyDoesNotContain))
+                        || !string.IsNullOrEmpty(httpMockSetting.Request.BodyDoesNotContain)
+                        || httpMockSetting.Request.BodyContainsArray != null)
                     {
                         foreach (var method in httpMockSetting.Request.Methods)
                         {

@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using FluentAssertions;
 using KestrelMockServer.Services;
 using KestrelMockServer.Settings;
 using Microsoft.AspNetCore.TestHost;
@@ -793,6 +794,60 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
 
         Assert.Equal($"{{ \"replace\":\"modified\" }}", await response.Content.ReadAsStringAsync());
         Assert.Equal(200, (int)response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("Body Contains", new[] { "Body" }, 200, "Because 'Body' exists in 'Body Contains'")]
+    [InlineData("Body Contains", new[] { "Contains" }, 200, "Because 'Contains' exists in 'Body Contains'")]
+    [InlineData("Body Contains", null, 200, "Because BodyContainsArray is null and path still matches")]
+    [InlineData("Body Contains", new string[] { }, 404, "Because BodyContainsArray is empty so body does not match")]
+    [InlineData("Body Contains", new string[] { "Something" }, 404, "Because 'Something' does not exist in 'Body Contains'")]
+    public async Task CanMockBodyContainsArrayResponse(string postBody, string[]? bodyContains, int statusCode, string message)
+    {
+        var client = _factory.WithWebHostBuilder(b =>
+        {
+            b.ConfigureTestServices(services =>
+            {
+
+                services.Configure((Action<MockConfiguration>)(opts =>
+                {
+                    opts.Clear();
+                    var setting = new HttpMockSetting
+                    {
+                        Request = new Request
+                        {
+                            Methods = new List<string>
+                            {
+                                "POST"
+                            },
+                            Path = "/api/estimate",
+                            BodyContainsArray = bodyContains?.ToList() ?? null,
+                        },
+                        Response = new Response
+                        {
+                            Status = 200,
+                            Body = "BodyContains Works"
+                        }
+                    };
+
+                    opts.TryAdd(setting.Id, setting);
+                }));
+
+            });
+        }).CreateClient();
+
+        var content = new StringContent(postBody);
+
+        var response = await client.PostAsync("api/estimate", content);
+
+        if (statusCode == 200)
+        {
+            var bodyResponse = await response.Content.ReadAsStringAsync();
+
+            bodyResponse.Should().Be("BodyContains Works");
+        }
+
+        statusCode.Should().Be((int)response.StatusCode, $"Because {message}");
     }
 
     [Fact]
