@@ -2,6 +2,7 @@
 using KestrelMockServer.Settings;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -53,7 +54,7 @@ namespace KestrelMockServer.Services
                             }
                             else
                             {
-                                inputMappings.BodyCheckMapping.TryAdd(key, new List<HttpMockSetting> { httpMockSetting });
+                                inputMappings.BodyCheckMapping.TryAdd(key, new ConcurrentBag<HttpMockSetting>() { httpMockSetting });
                             }
                         }
                     }
