@@ -74,6 +74,12 @@ namespace KestrelMockServer.Services
                 foreach (var possibleResult in possibleResults)
                 {
                     result = CheckBodyMapping(body, method, possibleResult);
+
+                    // We found it, don't need to iterate anymore
+                    if (result != null)
+                    {
+                        break;
+                    }
                 }
             }
 

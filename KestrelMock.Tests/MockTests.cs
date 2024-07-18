@@ -140,6 +140,72 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
         Assert.Contains("banana_x", message);
     }
 
+
+    [Theory]
+    [InlineData("/starts/with/xhsythf")]
+    public async Task CanMockResponseUsingPathStartsWithAndBodyContains_WithMultipleBodyContains(string url)
+    {
+        // Arrange
+        var client = _factory.WithWebHostBuilder(b =>
+        {
+            b.ConfigureTestServices(services =>
+            {
+
+                services.Configure<MockConfiguration>(opts =>
+                {
+                    var setting = new HttpMockSetting
+                    {
+                        Request = new Request
+                        {
+                            Path = url,
+                            BodyContains = "test",
+                            Methods = new System.Collections.Generic.List<string>
+                            {
+                                "POST"
+                            }
+                        },
+                        Response = new Response
+                        {
+                            Status = 200,
+                            Body = "banana_x"
+                        }
+                    };
+                    opts.TryAdd(setting.Id, setting);
+                    var settingSamePath = new HttpMockSetting
+                    {
+                        Request = new Request
+                        {
+                            Path = url,
+                            BodyContains = "different-body",
+                            Methods = new System.Collections.Generic.List<string>
+                            {
+                                "POST"
+                            }
+                        },
+                        Response = new Response
+                        {
+                            Status = 200,
+                            Body = "banana_y"
+                        }
+                    };
+                    opts.TryAdd(settingSamePath.Id, settingSamePath);
+                });
+            });
+        }).CreateClient();
+
+        var body = new StringContent("different-body");
+
+        // Act
+        var response = await client.PostAsync(url, body);
+
+        // Assert
+        response.EnsureSuccessStatusCode(); // Status Code 200-299
+
+        var message = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("banana_y", message);
+    }
+
     [Theory]
     [InlineData("/starts/with/xhsythf")]
     public async Task CanMockResponseUsingPathStartsWithAndBodyDoesNotContain(string url)
