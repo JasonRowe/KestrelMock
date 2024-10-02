@@ -37,15 +37,29 @@ namespace KestrelMockServer.Services
 
             if (result == null && mapping.PathStartsWithMapping != null)
             {
-                foreach (var pathStart in mapping.PathStartsWithMapping)
-                {
-                    if (path.StartsWith(pathStart.Key.Path) && pathStart.Value.Request.Methods.Contains(method))
-                    {
-                        result = CheckBodyMapping(body, method, pathStart.Value);
+                // this gets us closer to a match if we've mocked similar paths, but there may be matches that aren't quite there...
+                // so we find all the mocks where path starts with the defined pathstartswith and try to match the longest url first
+                var pathStartsWithList = mapping.PathStartsWithMapping
+                    .Where(p => path.StartsWith(p.Key.PathStartsWith))
+                    .OrderByDescending(p => p.Key.PathStartsWith.Length);
 
-                        if (result == null)
+                foreach (var pathStart in pathStartsWithList)
+                {
+                    foreach (var mockSetting in pathStart.Value)
+                    {
+                        if (path.StartsWith(mockSetting.Request.PathStartsWith) && mockSetting.Request.Methods.Contains(method))
                         {
-                            result = new ObservableResponse(pathStart.Value.Response, pathStart.Value.Watch);
+							result = CheckBodyMapping(body, method, mockSetting);
+
+                            if (result == null)
+                            {
+                                result = CheckEmptyBodyMapping(body, mockSetting);
+                            }
+
+                            if (result != null)
+                            {
+                                break;
+                            }
                         }
                     }
                 }
@@ -108,6 +122,25 @@ namespace KestrelMockServer.Services
                 {
                     return new ObservableResponse(possibleResult.Response, possibleResult.Watch);
                 }
+            }
+
+            return null;
+        }
+
+        private static ObservableResponse CheckEmptyBodyMapping(string body, HttpMockSetting possibleResult)
+        {
+            // if we don't have a body to look at, we just match whatever is sent in because it's just url matching at this point
+            if (string.IsNullOrEmpty(body))
+            {
+                return new ObservableResponse(possibleResult.Response, possibleResult.Watch);
+            }
+            // if body is present on request, but we haven't configured a body matcher, match what was sent in
+            else if (!string.IsNullOrEmpty(body) &&
+                string.IsNullOrEmpty(possibleResult.Request.BodyContains) &&
+                string.IsNullOrEmpty(possibleResult.Request.BodyDoesNotContain) &&
+                !(possibleResult.Request.BodyContainsArray?.Any() ?? false))
+            {
+                return new ObservableResponse(possibleResult.Response, possibleResult.Watch);
             }
 
             return null;

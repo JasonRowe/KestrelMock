@@ -77,13 +77,21 @@ namespace KestrelMockServer.Services
                 {
                     foreach (var method in httpMockSetting.Request.Methods)
                     {
-                        var key = new PathMappingKey
+                        var key = new PathStartsWithMappingKey
                         {
-                            Path = httpMockSetting.Request.PathStartsWith,
+                            PathStartsWith = httpMockSetting.Request.PathStartsWith,
                             Method = method
                         };
 
-                        inputMappings.PathStartsWithMapping.TryAdd(key, httpMockSetting);
+                        if (inputMappings.PathStartsWithMapping.ContainsKey(key))
+                        {
+                            var pathStartsWithMappingList = inputMappings.PathStartsWithMapping[key];
+                            pathStartsWithMappingList.Add(httpMockSetting);
+                        }
+                        else
+                        {
+							inputMappings.PathStartsWithMapping.TryAdd(key, new ConcurrentBag<HttpMockSetting>() { httpMockSetting });
+						}
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(httpMockSetting.Request.PathMatchesRegex))
@@ -125,7 +133,10 @@ namespace KestrelMockServer.Services
 
             foreach (var mockStartsWithSettings in mappings.PathStartsWithMapping.Values)
             {
-                toBeAwaited.Add(ReadBodyFromFile(mockStartsWithSettings));
+                foreach (var setting in mockStartsWithSettings)
+                {
+					toBeAwaited.Add(ReadBodyFromFile(setting));
+				}
             }
 
             foreach (var mockRegexSettings in mappings.PathMatchesRegexMapping.Values)
