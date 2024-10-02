@@ -917,6 +917,62 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
     }
 
     [Fact]
+    public async Task CanMockPathStartsWithAndBodyContainsWithVaryingPostUrls()
+    {
+        var sameUrlDifferentObjects = new List<KeyValuePair<string, dynamic>>()
+        {
+            new KeyValuePair<string, dynamic>("/api/estimate", new { expectedId = Guid.NewGuid(), postId = Guid.NewGuid() }),
+            new KeyValuePair<string, dynamic>("/api/estimate", new { expectedId = Guid.NewGuid(), postId = Guid.NewGuid() }),
+            new KeyValuePair<string, dynamic>("/api/estimate", new { expectedId = Guid.NewGuid(), postId = Guid.NewGuid() }),
+            new KeyValuePair<string, dynamic>("/api/estimate", new { expectedId = Guid.NewGuid(), postId = Guid.NewGuid() }),
+        };
+
+        var client = _factory.WithWebHostBuilder(b =>
+        {
+            b.ConfigureTestServices(services =>
+            {
+                services.Configure((Action<MockConfiguration>)(opts =>
+                {
+                    opts.Clear();
+                    foreach (var url in sameUrlDifferentObjects)
+                    {
+                        var setting = new HttpMockSetting
+                        {
+                            Request = new Request
+                            {
+                                Methods = new List<string>
+                                {
+                                    "POST"
+                                },
+                                PathStartsWith = url.Key,
+                                BodyContains = $"{url.Value.postId}",
+                            },
+                            Response = new Response
+                            {
+                                Status = 200,
+                                Body = $"Found Mock for url {url.Value.expectedId}"
+                            }
+                        };
+
+                        opts.TryAdd(setting.Id, setting);
+                    }
+                }));
+            });
+        }).CreateClient();
+
+        foreach (var url in sameUrlDifferentObjects)
+        {
+            var response = await client.PostAsync($"{url.Key}?id={Guid.NewGuid()}", new StringContent($"{url.Value.postId}"));
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            body.Should().Be($"Found Mock for url {url.Value.expectedId}");
+        }
+    }
+
+    [Fact]
     public async Task LoadBodyFromRelativePath()
     {
         var client = _factory.CreateClient();

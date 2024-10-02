@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace KestrelMockServer.Domain
 {
-    public sealed class PathStartsWithMapping : ConcurrentDictionary<PathMappingKey, HttpMockSetting>
+    public sealed class PathStartsWithMapping : ConcurrentDictionary<PathStartsWithMappingKey, ConcurrentBag<HttpMockSetting>>
     {
 
     }
