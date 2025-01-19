@@ -20,7 +20,7 @@ RUN dotnet publish "KestrelMockServerInstance.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "KestrelMockServer.dll"]
+ENTRYPOINT ["dotnet", "KestrelMockServerInstance.dll"]
 
 # custom docker image
 #FROM final as FinalLast
