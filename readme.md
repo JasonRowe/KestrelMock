@@ -1,5 +1,5 @@
 # Kestrel Mock  
-A .NET HTTP mock server.
+A .NET HTTP mock server for testing.
 
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/JasonRowe/fe23c15603763c6eb09eea7bd38ba23f/raw/code-coverage.json)
 [![Unit Tests](https://github.com/JasonRowe/KestrelMock/actions/workflows/dotnetcore.yml/badge.svg)](https://github.com/JasonRowe/KestrelMock/actions/workflows/dotnetcore.yml)
@@ -7,177 +7,57 @@ A .NET HTTP mock server.
 [![Nuget version](https://img.shields.io/nuget/v/kestrelmock)](https://www.nuget.org/packages/kestrelmock)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE.md)
 
+## Overview
 
-## Example Nuget Reference Usage (RunAsync)
+KestrelMock provides a simple way to mock HTTP APIs for testing purposes. It allows you to simulate server responses for various HTTP methods, paths, and headers. 
 
-For direct use in a test project you can add the KestralMock nuget package and RunAsync. This will startup the webserver and return so your tests can use the mock API's configured in appsettings.json. See example appsetting.json below. By default, the mock endpoints will use http://localhost:60000.
+The library has evolved to prefer managing mocks via **Admin Endpoints** and **Observable Mocks** instead of relying on `appsettings.json` configuration, making it easier to manage and interact with mock settings dynamically.
 
-```csharp
-var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
-
-KestrelMock.RunAsync(config);
-
-```
-
-## Example Nuget Reference Usage (CreateWebHostBuilder)
-
-For direct use in a test project you can add the KestralMock nuget package and call CreateWebHostBuilder. CreateWebHostBuilder will return the web host so you can controll the start and stop of the mock server.
-
-```csharp
-webHost = KestrelMock.CreateWebHostBuilder(new string[] { YourUrl }, YourConfigurationRoot).Build();
-webHost.Start();
-```
-
-
-## Example Server Usage (Run)
-Server will run and not return until the process shuts down. See KestrelMockServer project as an example.
-
-```csharp
-var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
-
-KestrelMock.Run(config);
-
-```
-
+---
 
 ## Install
 
-```cli
+To get started with KestrelMock, add the NuGet package to your project:
+
+```
 dotnet add package KestrelMock
 ```
 
-## Example Mocks setup via appsettings.json
+---
 
-```json
-{
-   "MockSettings":[
-      {
-         "Request":{
-            "Methods":[
-               "GET"
-            ],
-            "PathStartsWith":"/starts/with"
-         },
-         "Response":{
-            "Status":200,
-            "Headers":[
-               {
-                  "Content-Type":"application/json"
-               }
-            ],
-            "Body":"{\"banana_x\": 8000}"
-         }
-      },
-      {
-         "Request": {
-            "Methods": [ "GET" ],
-            "PathMatchesRegex": ".+\\d{4}.+"
-         },
-         "Response": {
-            "Status": 200,
-            "Headers": [
-               {
-                  "Content-Type": "application/json"
-               }
-            ],
-            "Body": "{\"banana_x\": 8000}"
-         }
-      },
-      {
-         "Request":{
-            "Methods":[
-               "POST",
-               "GET"
-            ],
-            "Path":"/hello/world"
-         },
-         "Response":{
-            "Status":200,
-            "Headers":[
-               {
-                  "Content-Type":"application/json"
-               }
-            ],
-            "Body":"{\"hello\": \"world\"}"
-         }
-      },
-      {
-         "Request":{
-            "Methods":[
-               "POST"
-            ],
-            "Path":"/api/estimate",
-            "BodyContains":"00000"
-         },
-         "Response":{
-            "Status":200,
-            "Headers":[
-               {
-                  "Content-Type":"application/json"
-               }
-            ],
-            "Body":"BodyContains Works!"
-         }
-      },
-      {
-         "Request":{
-            "Methods":[
-               "POST"
-            ],
-            "Path":"/api/estimate",
-            "BodyDoesNotContain":"00000"
-         },
-         "Response":{
-            "Status":200,
-            "Headers":[
-               {
-                  "Content-Type":"application/json"
-               }
-            ],
-            "Body":"BodyDoesNotContain works!!"
-         }
-      },
-      {
-         "Request":{
-            "Methods":[
-               "POST",
-               "GET"
-            ],
-            "Path":"/api/fromfile"
-         },
-         "Response":{
-            "Status":200,
-            "Headers":[
-               {
-                  "Content-Type":"application/json"
-               }
-            ],
-            "BodyFromFilePath":"./TestData/body.txt"
-         }
-      }
-   ]
-}
-```
-## Example Mocks setup via admin endpoint
+## Getting Started
 
-admin endpoint '/kestrelmock/mocks'
+You can use KestrelMock in one of two primary ways:
 
-GET - returns list of mock settings objects.
+1. **Using Admin Endpoints & Observable Mocks (Recommended)**
+2. **Legacy Configuration via `appsettings.json`**
 
-POST - body is expected to be HttpMockSetting and adds new mock
+### 1. Using Admin Endpoints & Observable Mocks (Recommended)
 
-DELETE - '/kestrelmock/mocks/YOURID' will delete by HttpMockSetting Id.
+The preferred way to use KestrelMock is via its Admin API for dynamic mock creation and observation. This allows for better flexibility, and the ability to monitor requests using the **observe endpoint**.
 
-## Watch requests using observe endpoint
+#### Starting KestrelMock
 
-observe endpoint '/kestrelmock/observe/[Watch id]'
-
-When adding the "Watch" object to your mock settings, an observe endpoint will be created to retrieve request data. The watch id can be added directly or retrieved via response of mock creation.
+To start the KestrelMock server, the most flexible way is to use the following code. The configuration passed in is not validated and the web host is returned so you can controll the start and stop of the mock server.
 
 ```
-### Example post request to create mock with "Watch" object
+KestrelMock.CreateWebHostBuilder(new string[] { 'http://localhost:60000' }, OptionalConfiguration);
+```
 
-POST https://localhost:44391/kestrelmock/mocks
+This starts the server, which you can then interact with using HTTP requests. The server will be accessible on `http://localhost:60000`.
+
+#### Create Mocks via Admin Endpoint
+
+You can create, update, and delete mock settings via the Admin endpoint.
+
+- **POST** `/kestrelmock/mocks` - Create a new mock
+- **GET** `/kestrelmock/mocks` - List all mock settings
+- **DELETE** `/kestrelmock/mocks/{id}` - Delete a mock by its ID
+
+**Example POST request to create a mock:**
+
+```
+POST /kestrelmock/mocks
 Content-Type: application/json
 
 {
@@ -188,13 +68,9 @@ Content-Type: application/json
    "Response": {
       "Status": 200,
       "Headers": [
-         {
-         "Content-Type": "application/json"
-         }
+         { "Content-Type": "application/json" }
       ],
-      "Body": "{\"hello\":\"test\"}",
-      "BodyFromFilePath":null,
-      "Replace": null
+      "Body": "{\"hello\":\"test\"}"
    },
    "Watch": {
       "RequestLogLimit": 10,
@@ -203,45 +79,97 @@ Content-Type: application/json
 }
 ```
 
-Example of mock creation response from request above
+After creating a mock, the server will respond with a **watch ID** that can be used to track requests made to that mock.
+
+---
+
+#### Watch Requests using the Observe Endpoint
+
+When you create a mock with a **Watch** object, an "observe" endpoint is automatically available to track requests made to that mock.
+
+**Example of observing request data:**
+
+- **GET** `/kestrelmock/observe/{watchId}` - Retrieves the request data for the given watch ID.
+
+**Example request to view data from the observe endpoint:**
+
 ```
-{"Message":"Dynamic mock added with observability, call /kestrelmock/observe/c3f57f2c-b989-46eb-93a3-247a6caebe6d","Watch":{"Id":"c3f57f2c-b989-46eb-93a3-247a6caebe6d","RequestLogLimit":10}}
+GET https://localhost:60000/kestrelmock/observe/c3f57f2c-b989-46eb-93a3-247a6caebe6d
 ```
 
-If you send the following request to a mocked endpoint which has a watch.
+This will return the details of requests (up to the configured log limit).
+
+**Example response:**
+
 ```
-### Send request to mocked endpoint with body data to test
+[
+   {
+      "Path": "/api/supplier",
+      "Body": "{\"Test\": \"foo\"}",
+      "Method": "PUT"
+   }
+]
+```
 
-PUT https://localhost:44391/api/supplier
-Content-Type: application/json
+---
 
+### 2. Legacy Configuration via `appsettings.json`
+
+You can still use the legacy configuration method through `appsettings.json` if preferred, though it is no longer the recommended approach. This allows you to pre-define mock behavior before starting the server.
+
+#### Example Setup in `appsettings.json`
+
+```
 {
-   "Test" : "foo"
+   "MockSettings": [
+      {
+         "Request": {
+            "Methods": [ "GET" ],
+            "PathStartsWith": "/starts/with"
+         },
+         "Response": {
+            "Status": 200,
+            "Headers": [
+               { "Content-Type": "application/json" }
+            ],
+            "Body": "{\"banana_x\": 8000}"
+         }
+      },
+      {
+         "Request": {
+            "Methods": [ "POST" ],
+            "Path": "/api/estimate",
+            "BodyContains": "00000"
+         },
+         "Response": {
+            "Status": 200,
+            "Headers": [
+               { "Content-Type": "application/json" }
+            ],
+            "Body": "BodyContains Works!"
+         }
+      }
+   ]
 }
 ```
 
-Then you can call the observe endpoint to see that request body from previous requests up to the limit. The request to the observe endpoint will clear all current data from the watch queue.
-```
-### See your requests using observe endpoint
-
-GET https://localhost:44391/kestrelmock/observe/c3f57f2c-b989-46eb-93a3-247a6caebe6d
-Content-Type: application/json
-```
-
-The observe endpoint will give you back the body. Example respons:
+#### Start the Mock Server
 
 ```
-[{"Path":"/api/supplier","Body":"{\r\n   \"Test\" : \"foo\"\r\n}","Method":"PUT"}]
+var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+
+KestrelMock.RunAsync(config);
 ```
 
+---
 
-## Dynamic Mock
+## Dynamic Mocking
 
-Some advanced dynamic mocking capabilities are provided for Json body data responses
+KestrelMock supports advanced dynamic mocking, such as replacing parts of the response body based on request data or URI patterns.
 
-### Simple body replace
+### Example: Simple Body Replacement
 
-```json
+```
 {
    "Request": {
       "Methods": [ "GET" ],
@@ -250,24 +178,22 @@ Some advanced dynamic mocking capabilities are provided for Json body data respo
    "Response": {
       "Status": 200,
       "Headers": [
-         {
-         "Content-Type": "application/json"
-         }
+         { "Content-Type": "application/json" }
       ],
       "Body": "./data/person.json",
       "Replace": {
          "BodyReplacements": {
-         "year": "1987",
-         "name" : "carl"
+            "year": "1987",
+            "name": "carl"
          }
       }
    }
 }
 ```
 
-### From Uri : Regex
+### Example: URI-based Replacement
 
-```json
+```
 {
    "Request": {
       "Methods": [ "GET" ],
@@ -276,91 +202,147 @@ Some advanced dynamic mocking capabilities are provided for Json body data respo
    "Response": {
       "Status": 200,
       "Headers": [
-         {
-         "Content-Type": "application/json"
-         }
+         { "Content-Type": "application/json" }
       ],
       "Body": "./my/generic/response.json",
       "Replace": {
-          "RegexUriReplacements": {
+         "RegexUriReplacements": {
             "car": "cars/([\\w\\d]+)/.+",
             "color": "/([\\w\\d]+)$"
-          }
-        }
+         }
+      }
+   }
+}
+```
+## Available Mock Properties
+
+When defining mocks, you can specify various properties in the `Request` object to match specific HTTP request patterns. This allows for more flexibility in simulating different scenarios for testing. Below are the available properties you can use in the `Request` object and how they work:
+
+### 1. `Path`
+
+- **Description**: Matches the exact path of the request.
+- **Use Case**: When you want to match a specific request path exactly.
+- **Example**:
+
+```
+{
+   "Request": {
+      "Path": "/api/supplier"
+   },
+   "Response": {
+      "Status": 200,
+      "Body": "{\"message\": \"Success\"}"
    }
 }
 ```
 
-### From Uri: Uri template
+This will match any request made to `/api/supplier`.
 
-UriPathReplacements is in the format bodyValue:uriValue
-   
-```json
+---
+
+### 2. `PathStartsWith`
+
+- **Description**: Matches the path of the request if it starts with the specified string.
+- **Use Case**: When you want to match paths that share a common prefix (e.g., `/api/products` and `/api/products/{id}`).
+- **Example**:
+
+```
 {
-      "Request": {
-        "Methods": [ "GET" ],
-        "PathStartsWith": "/api/wines"
-      },
-      "Response": {
-        "Status": 200,
-        "Headers": [
-          {
-            "Content-Type": "application/json"
-          }
-        ],
-        "Body": "{\"wine\":\"W\",\"color\":\"C\",\"year\":\"Y\"}",
-        "Replace": {
-          "UriTemplate": "wines/{wine}/{color}?year={year}",
-          "BodyReplacements": {
-            "year": "1987"
-          },
-          "UriPathReplacements": {
-            "wine": "{wine}",
-            "color": "{color}",
-            "year":"{year}"
-          }
-        }
-      }
+   "Request": {
+      "PathStartsWith": "/api/products"
+   },
+   "Response": {
+      "Status": 200,
+      "Body": "{\"message\": \"Product List\"}"
+   }
 }
 ```
 
-## DOCKER
+This will match any path that starts with `/api/products`, such as `/api/products` or `/api/products/123`.
 
-you can just run kestrel mock default template configuration with
+---
 
-```bash
+### 3. `BodyContains`
+
+- **Description**: Matches requests where the body contains the specified substring.
+- **Use Case**: When you want to mock a response for requests with specific data in the body.
+- **Example**:
+
+```
+{
+   "Request": {
+      "BodyContains": "customer_id"
+   },
+   "Response": {
+      "Status": 200,
+      "Body": "{\"message\": \"Customer found\"}"
+   }
+}
+```
+
+This will match requests where the body contains `"customer_id"`.
+
+---
+
+### 4. `BodyContainsArray`
+
+- **Description**: Matches requests where the body contains any of the substrings in the array.
+- **Use Case**: When you want to match requests that contain any of several possible substrings in the body.
+- **Example**:
+
+```
+{
+   "Request": {
+      "BodyContainsArray": ["order_id", "customer_id"]
+   },
+   "Response": {
+      "Status": 200,
+      "Body": "{\"message\": \"Order processed\"}"
+   }
+}
+```
+
+This will match requests where the body contains either `"order_id"` or `"customer_id"`.
+
+---
+
+### 5. `BodyDoesNotContain`
+
+- **Description**: Matches requests where the body does **not** contain the specified substring.
+- **Use Case**: When you want to exclude requests that contain certain data in the body.
+- **Example**:
+
+```
+{
+   "Request": {
+      "BodyDoesNotContain": "error"
+   },
+   "Response": {
+      "Status": 200,
+      "Body": "{\"message\": \"Request processed successfully\"}"
+   }
+}
+```
+
+This will match requests where the body does **not** contain `"error"`.
+
+---
+
+## Docker Support
+
+KestrelMock can be easily run via Docker. You can use the default template configuration or build your custom image.
+
+### Run Default Configuration:
+
+```
 docker run -p 5006:5000 -e ASPNETCORE_URLS=http://*:5000 jasonrowe/kestrelmock
 ```
 
-If you want you can create your own image, and then add a custom appsetting.json and responses folder
+### Build and Run Custom Image:
 
-```bash
+```
 docker build --no-cache -t kestrelmock:latest -f .\KestrelMockServerInstance\Dockerfile .
-
 docker run -it --rm -p 5000:80 --name myapp kestrelmock:latest
 ```
 
-Keep in mind that within the container you can modify the behaviour changing: 
-**/app/appsettings.json**
-and 
-**/app/responses** .  
-Via docker cp command on a local container you can apply custom settings and mock response files  
-
-```bash
-cd mySettingsFolder
-
-docker cp appsettings.json myapp:/app/appsettings.json
-
-docker cp .\resp\ciao.json myapp:/app/responses/ciao.json
-```
-
-If you prefer build your custom image in CI/CD pipelines, you can append this to the docker file.
-Else just push to a private image registry, and use that as a starting image
-
-```dockerfile
-FROM jasonrowe/kestrelmock as KestrelMockServerBase
-WORKDIR /app
-COPY ["responses","responses"]
-COPY ["appsettings.json", "appsettings.json"]
-ENTRYPOINT ["dotnet", "KestrelMockServerInstance.dll"]
-```
+---
