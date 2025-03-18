@@ -1,10 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Text.Json;
-using System.Threading.Tasks;
 using FluentAssertions;
 using KestrelMockServer.Services;
 using KestrelMockServer.Settings;
@@ -13,6 +6,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Refit;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace KestrelMock.Tests;
@@ -868,6 +868,7 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
     [InlineData("Body Contains", null, 200, "Because BodyContainsArray is null and path still matches")]
     [InlineData("Body Contains", new string[] { }, 404, "Because BodyContainsArray is empty so body does not match")]
     [InlineData("Body Contains", new string[] { "Something" }, 404, "Because 'Something' does not exist in 'Body Contains'")]
+    [InlineData("Body Contains", new string[] { "Body", "Something" }, 404, "Because 'Something' does not exist in 'Body Contains'")]
     public async Task CanMockBodyContainsArrayResponse(string postBody, string[]? bodyContains, int statusCode, string message)
     {
         var client = _factory.WithWebHostBuilder(b =>

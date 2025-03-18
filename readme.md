@@ -286,8 +286,8 @@ This will match requests where the body contains `"customer_id"`.
 
 ### 4. `BodyContainsArray`
 
-- **Description**: Matches requests where the body contains any of the substrings in the array.
-- **Use Case**: When you want to match requests that contain any of several possible substrings in the body.
+- **Description**: Matches requests where the body contains all of the substrings in the array.
+- **Use Case**: When you want to match requests that contain several substrings in the body.
 - **Example**:
 
 ```
@@ -302,7 +302,7 @@ This will match requests where the body contains `"customer_id"`.
 }
 ```
 
-This will match requests where the body contains either `"order_id"` or `"customer_id"`.
+This will match requests where the body contains both `"order_id"` and `"customer_id"`.
 
 ---
 
