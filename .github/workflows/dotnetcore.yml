@@ -13,6 +13,24 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Validate Version Bump
+      if: github.event_name == 'pull_request'
+      run: |
+        VERSION=$(grep -oPm1 "(?<=<PackageVersion>)[^<]+" KestrelMock/KestrelMockServer.csproj)
+        echo "Checking if version $VERSION is already published on NuGet..."
+        
+        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.nuget.org/v3-flatcontainer/kestrelmock/$VERSION/kestrelmock.nuspec")
+        
+        if [ "$HTTP_STATUS" == "200" ]; then
+          echo "::error::Version $VERSION is already published to NuGet! Please bump the <PackageVersion> in KestrelMock/KestrelMockServer.csproj before merging."
+          exit 1
+        elif [ "$HTTP_STATUS" == "404" ]; then
+          echo "Version $VERSION is new. Good to go!"
+        else
+          echo "Unexpected response from NuGet API: $HTTP_STATUS. Assuming new version."
+        fi
+
     - name: Setup .NET 10.x
       uses: actions/setup-dotnet@v4
       with:
