@@ -102,7 +102,7 @@ namespace KestrelMockServer.Services
                 {
                     foreach (var key in header.Keys)
                     {
-                        context.Response.Headers.Add(key, header[key]);
+                        context.Response.Headers.Append(key, header[key]);
                     }
                 }
             }
