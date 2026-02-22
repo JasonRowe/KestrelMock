@@ -22,20 +22,24 @@ namespace KestrelMockServer.Services
         private readonly IInputMappingParser _inputMappingParser;
         private readonly IResponseMatcherService _responseMatcher;
         private readonly IBodyWriterService _bodyWriterService;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<TrafficHub> _hubContext;
 
-        private readonly Watcher _watcher = new Watcher();
+        private readonly Watcher _watcher;
 
         public MockService(IOptions<MockConfiguration> options,
             RequestDelegate next,
             IInputMappingParser inputMappingParser,
             IResponseMatcherService responseMatcher,
-            IBodyWriterService bodyWriterService)
+            IBodyWriterService bodyWriterService,
+            Microsoft.AspNetCore.SignalR.IHubContext<TrafficHub> hubContext)
         {
             _mockConfiguration = options.Value;
             _next = next;
             _inputMappingParser = inputMappingParser;
             _responseMatcher = responseMatcher;
             _bodyWriterService = bodyWriterService;
+            _hubContext = hubContext;
+            _watcher = new Watcher(_hubContext);
         }
 
         public async Task Invoke(HttpContext context)

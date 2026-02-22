@@ -9,7 +9,22 @@
 		<LangVersion>8.0</LangVersion>
 		<OutputType>library</OutputType>
 		<IsPackable>true</IsPackable>
+		<GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
 	</PropertyGroup>
 	<ItemGroup>
+	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.9" />
+	  <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.0" />
+	</ItemGroup>
+
+	<Target Name="PublishBlazorUI" BeforeTargets="BeforeBuild">
+		<Exec Command="dotnet publish ../KestrelMock.BlazorUI/KestrelMock.BlazorUI.csproj -c Release -o $(IntermediateOutputPath)BlazorUI" />
+	</Target>
+
+	<ItemGroup>
+		<EmbeddedResource Include="$(IntermediateOutputPath)BlazorUI\wwwroot\**\*">
+			<TargetPath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+		</EmbeddedResource>
 	</ItemGroup>
 </Project>
