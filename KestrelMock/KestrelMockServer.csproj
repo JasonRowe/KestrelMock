@@ -6,7 +6,6 @@
 		<Authors>Jason Rowe</Authors>
 		<Description>.Net Core HTTP mocking server</Description>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-		<LangVersion>8.0</LangVersion>
 		<OutputType>library</OutputType>
 		<IsPackable>true</IsPackable>
 		<GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
@@ -15,14 +14,15 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.9" />
-	  <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.0" />
+	  <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.0" />
 	</ItemGroup>
 
-	<Target Name="PublishBlazorUI" BeforeTargets="BeforeBuild">
+	<!-- Only publish and embed the Blazor UI during Release builds to keep Debug/test builds fast -->
+	<Target Name="PublishBlazorUI" BeforeTargets="BeforeBuild" Condition="'$(Configuration)' == 'Release'">
 		<Exec Command="dotnet publish ../KestrelMock.BlazorUI/KestrelMock.BlazorUI.csproj -c Release -o $(IntermediateOutputPath)BlazorUI" />
 	</Target>
 
-	<ItemGroup>
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
 		<EmbeddedResource Include="$(IntermediateOutputPath)BlazorUI\wwwroot\**\*">
 			<TargetPath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
 		</EmbeddedResource>

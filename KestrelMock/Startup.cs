@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using KestrelMockServer.Services;
 using KestrelMockServer.Settings;
@@ -13,7 +14,7 @@ using Microsoft.AspNetCore.StaticFiles;
 namespace KestrelMockServer
 {
     /// <summary>
-    /// default startup implementation, this should not be necessary for aspnetcore.. might simplify a bit
+    /// Default startup implementation for KestrelMock.
     /// </summary>
     public class Startup
     {
@@ -30,10 +31,9 @@ namespace KestrelMockServer
             {
                 options.AddDefaultPolicy(builder =>
                 {
-                    builder.WithOrigins("http://localhost:5042", "https://localhost:7142", "https://localhost:7066")
+                    builder.AllowAnyOrigin()
                            .AllowAnyMethod()
-                           .AllowAnyHeader()
-                           .AllowCredentials(); // Required for SignalR
+                           .AllowAnyHeader();
                 });
             });
 
@@ -59,53 +59,64 @@ namespace KestrelMockServer
         public void Configure(IApplicationBuilder app)
         {
             app.UseRouting();
-            app.UseCors(); // Must be between UseRouting and UseEndpoints
+            app.UseCors();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapHub<TrafficHub>("/kestrelmock/hub/traffic");
             });
 
-            // Serve the embedded Blazor UI from the /kestrelmock/ui path
+            // Serve the embedded Blazor UI from the /kestrelmock/ui path.
+            // The UI is only embedded during Release builds; in Debug/test builds the manifest
+            // is absent and the UI is simply not served (the mock functionality is unaffected).
             var assembly = typeof(Startup).GetTypeInfo().Assembly;
-            var embeddedProvider = new ManifestEmbeddedFileProvider(
-                assembly,
-                "wwwroot"
-            );
-
-            // Blazor WASM requires specific MIME types that aren't mapped by default in all environments
-            var contentTypeProvider = new FileExtensionContentTypeProvider();
-            if (!contentTypeProvider.Mappings.ContainsKey(".wasm"))
+            ManifestEmbeddedFileProvider embeddedProvider = null;
+            try
             {
-                contentTypeProvider.Mappings[".wasm"] = "application/wasm";
+                embeddedProvider = new ManifestEmbeddedFileProvider(assembly, "wwwroot");
             }
-            if (!contentTypeProvider.Mappings.ContainsKey(".dat"))
+            catch (InvalidOperationException)
             {
-                contentTypeProvider.Mappings[".dat"] = "application/octet-stream";
+                // No embedded manifest — running in Debug or test mode without a published UI.
             }
 
-            app.UseStaticFiles(new StaticFileOptions
+            if (embeddedProvider != null)
             {
-                FileProvider = embeddedProvider,
-                RequestPath = "/kestrelmock/ui",
-                ContentTypeProvider = contentTypeProvider
-            });
-
-            // Fallback routing for Blazor WASM client-side navigation within /kestrelmock/ui
-            app.Use(async (context, next) =>
-            {
-                if (context.Request.Path.StartsWithSegments("/kestrelmock/ui") 
-                    && !context.Request.Path.Value.Contains(".")) // not a file extension like .js or .css
+                // Blazor WASM requires specific MIME types that aren't mapped by default in all environments
+                var contentTypeProvider = new FileExtensionContentTypeProvider();
+                if (!contentTypeProvider.Mappings.ContainsKey(".wasm"))
                 {
-                    context.Response.ContentType = "text/html";
-                    var fileInfo = embeddedProvider.GetFileInfo("index.html");
-                    if (fileInfo.Exists)
-                    {
-                        await context.Response.SendFileAsync(fileInfo);
-                        return;
-                    }
+                    contentTypeProvider.Mappings[".wasm"] = "application/wasm";
                 }
-                await next();
-            });
+                if (!contentTypeProvider.Mappings.ContainsKey(".dat"))
+                {
+                    contentTypeProvider.Mappings[".dat"] = "application/octet-stream";
+                }
+
+                app.UseStaticFiles(new StaticFileOptions
+                {
+                    FileProvider = embeddedProvider,
+                    RequestPath = "/kestrelmock/ui",
+                    ContentTypeProvider = contentTypeProvider
+                });
+
+                // Fallback routing for Blazor WASM client-side navigation within /kestrelmock/ui
+                var capturedProvider = embeddedProvider;
+                app.Use(async (context, next) =>
+                {
+                    if (context.Request.Path.StartsWithSegments("/kestrelmock/ui")
+                        && !context.Request.Path.Value.Contains("."))
+                    {
+                        context.Response.ContentType = "text/html";
+                        var fileInfo = capturedProvider.GetFileInfo("index.html");
+                        if (fileInfo.Exists)
+                        {
+                            await context.Response.SendFileAsync(fileInfo);
+                            return;
+                        }
+                    }
+                    await next();
+                });
+            }
 
             app.UseMiddleware<MockService>();
         }
