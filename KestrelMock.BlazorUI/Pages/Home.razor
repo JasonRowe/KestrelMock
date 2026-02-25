@@ -3,6 +3,8 @@
 @using KestrelMock.BlazorUI.Models
 @inject NavigationManager Navigation
 @inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>Live Dashboard</PageTitle>
 
@@ -12,7 +14,7 @@
         <MudPaper Elevation="2" Class="pa-4 d-flex flex-column" Style="height: calc(100vh - 120px); overflow: hidden;">
             <div class="d-flex justify-space-between align-center mb-4">
                 <MudText Typo="Typo.h6">Active Mocks</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add">New Mock</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenNewMockDialog">New Mock</MudButton>
             </div>
             
             <MudList T="HttpMockSetting" Dense="true" Class="flex-grow-1 overflow-auto">
@@ -112,12 +114,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // TODO: Make the server base URL configurable via a settings page.
-        // Currently defaults to the standard KestrelMock listen address.
-        const string serverBaseUrl = "http://localhost:5000";
-
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl($"{serverBaseUrl}/kestrelmock/hub/traffic")
+            .WithUrl($"{Constants.ServerBaseUrl}/kestrelmock/hub/traffic")
             .WithAutomaticReconnect()
             .Build();
 
@@ -135,7 +133,7 @@
         {
             await _hubConnection.StartAsync();
 
-            var httpClient = new HttpClient { BaseAddress = new Uri(serverBaseUrl) };
+            var httpClient = new HttpClient { BaseAddress = new Uri(Constants.ServerBaseUrl) };
             var fetchedMocks = await httpClient.GetFromJsonAsync<List<HttpMockSetting>>("/kestrelmock/mocks");
             _mocks = fetchedMocks ?? new List<HttpMockSetting>();
         }
@@ -170,4 +168,40 @@
         >= 500           => Color.Error,
         _                => Color.Default
     };
+
+    private async Task OpenNewMockDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<NewMockDialog>("New Mock", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data != null)
+        {
+            var newMock = (HttpMockSetting)result.Data;
+            try
+            {
+                var httpClient = new HttpClient { BaseAddress = new Uri(Constants.ServerBaseUrl) };
+                
+                var response = await httpClient.PostAsJsonAsync("/kestrelmock/mocks", newMock);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Mock added successfully!", Severity.Success);
+                    
+                    var fetchedMocks = await httpClient.GetFromJsonAsync<List<HttpMockSetting>>("/kestrelmock/mocks");
+                    _mocks = fetchedMocks ?? new List<HttpMockSetting>();
+                    StateHasChanged();
+                }
+                else
+                {
+                    var msg = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Failed to add mock. {response.StatusCode} {msg}", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error adding mock: {ex.Message}", Severity.Error);
+            }
+        }
+    }
 }

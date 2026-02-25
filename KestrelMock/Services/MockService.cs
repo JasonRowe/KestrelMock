@@ -140,7 +140,10 @@ namespace KestrelMockServer.Services
             {
                 using StreamReader reader = new StreamReader(context.Request.Body);
                 var body = await reader.ReadToEndAsync();
-                var setting = JsonSerializer.Deserialize<HttpMockSetting>(body);
+                
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var setting = JsonSerializer.Deserialize<HttpMockSetting>(body, options);
+                
                 _mockConfiguration.TryAdd(setting.Id, setting);
                 await context.Response.WriteAsync(JsonSerializer.Serialize(DynamicMockAddedResponse.Create(setting)));
             }

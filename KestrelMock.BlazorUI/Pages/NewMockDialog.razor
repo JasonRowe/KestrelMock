@@ -1,0 +1,71 @@
+@using KestrelMock.BlazorUI.Models
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudSelect T="string" Label="Method" @bind-Value="_method" Required="true" Class="mb-4">
+                <MudSelectItem Value="@("GET")" />
+                <MudSelectItem Value="@("POST")" />
+                <MudSelectItem Value="@("PUT")" />
+                <MudSelectItem Value="@("DELETE")" />
+                <MudSelectItem Value="@("PATCH")" />
+            </MudSelect>
+            <MudSelect T="string" Label="Path Match Type" @bind-Value="_pathMatchType" Required="true" Class="mb-4">
+                <MudSelectItem Value="@("Exact")" />
+                <MudSelectItem Value="@("Starts With")" />
+                <MudSelectItem Value="@("Regex")" />
+            </MudSelect>
+            <MudTextField T="string" Label="Path" @bind-Value="_path" Required="true" Class="mb-4" />
+            <MudNumericField T="int" Label="Status Code" @bind-Value="_status" Required="true" Min="100" Max="599" Class="mb-4" />
+            <MudTextField T="string" Label="Response Body" @bind-Value="_body" Lines="5" Class="mb-4" />
+            <MudSwitch T="bool" Label="Watch" @bind-Value="_watch" Color="Color.Primary" Class="mb-4" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm? _form;
+    
+    private string _method = "GET";
+    private string _pathMatchType = "Exact";
+    private string _path = "/api/test";
+    private int _status = 200;
+    private string? _body = "{}";
+    private bool _watch = false;
+
+    private async Task Submit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                var mockSetting = new HttpMockSetting
+                {
+                    Request = new Request { Methods = new List<string> { _method } },
+                    Response = new Response { Status = _status, Body = _body }
+                };
+
+                if (_pathMatchType == "Exact") mockSetting.Request.Path = _path;
+                else if (_pathMatchType == "Starts With") mockSetting.Request.PathStartsWith = _path;
+                else if (_pathMatchType == "Regex") mockSetting.Request.PathMatchesRegex = _path;
+
+                if (_watch)
+                {
+                    mockSetting.Watch = new Watch { Id = Guid.NewGuid() };
+                }
+
+                MudDialog.Close(DialogResult.Ok(mockSetting));
+            }
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
