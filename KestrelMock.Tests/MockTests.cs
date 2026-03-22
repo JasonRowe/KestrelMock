@@ -42,6 +42,24 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
         Assert.NotNull(runAsyncResult);
     }
 
+    [Fact]
+    public void RunAsyncWithNullUrls()
+    {
+        var builder = new ConfigurationBuilder().AddJsonFile($"appsettings.json", optional: false);
+        var configuration = builder.Build();
+        var runAsyncResult = KestrelMockServer.KestrelMock.RunAsync(configuration, null);
+        Assert.NotNull(runAsyncResult);
+    }
+
+    [Fact]
+    public void RunAsyncWithSpecificUrls()
+    {
+        var builder = new ConfigurationBuilder().AddJsonFile($"appsettings.json", optional: false);
+        var configuration = builder.Build();
+        var runAsyncResult = KestrelMockServer.KestrelMock.RunAsync(configuration, "http://localhost:50001");
+        Assert.NotNull(runAsyncResult);
+    }
+
     private readonly MockTestApplicationFactory _factory;
 
     public MockTests(MockTestApplicationFactory factory)
@@ -1348,6 +1366,61 @@ public class MockTests : IClassFixture<MockTestApplicationFactory>
             Assert.Contains(settingToAddMockId, message, StringComparison.InvariantCultureIgnoreCase);
         }
 
+    }
+
+    [Fact]
+    public async Task CanMockResponseUsingPathMapping_AndSkipsRegex()
+    {
+        // Arrange
+        var client = _factory.WithWebHostBuilder(b =>
+        {
+            b.ConfigureTestServices(services =>
+            {
+
+                services.Configure((Action<MockConfiguration>)(opts =>
+                {
+                    opts.Clear();
+                    var pathSetting = new HttpMockSetting
+                    {
+                        Request = new Request
+                        {
+                            Methods = new System.Collections.Generic.List<string> { "GET" },
+                            Path = "/api/test"
+                        },
+                        Response = new Response
+                        {
+                            Status = 200,
+                            Body = "path_match"
+                        }
+                    };
+                    opts.TryAdd(pathSetting.Id, pathSetting);
+
+                    var regexSetting = new HttpMockSetting
+                    {
+                        Request = new Request
+                        {
+                            Methods = new System.Collections.Generic.List<string> { "GET" },
+                            PathMatchesRegex = ".*test.*"
+                        },
+                        Response = new Response
+                        {
+                            Status = 200,
+                            Body = "regex_match"
+                        }
+                    };
+                    opts.TryAdd(regexSetting.Id, regexSetting);
+                }));
+
+            });
+        }).CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/api/test");
+
+        // Assert
+        response.EnsureSuccessStatusCode();
+        var message = await response.Content.ReadAsStringAsync();
+        Assert.Equal("path_match", message);
     }
 
     [Fact]

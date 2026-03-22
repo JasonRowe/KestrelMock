@@ -144,5 +144,29 @@ namespace KestrelMock.Tests
             Assert.Contains("\"orderId\":456", updatedBody);
             Assert.Contains("\"itemId\":789", updatedBody);
         }
+
+        [Fact]
+        public void UpdateBody_WithRegexUriReplacements_NoCaptureGroups_UsesFullMatch()
+        {
+            // Arrange
+            var path = "/api/v1/users";
+            var response = new Response
+            {
+                Replace = new Replace
+                {
+                    RegexUriReplacements = new Dictionary<string, string>
+                    {
+                        { "version", @"v\d+" }
+                    }
+                }
+            };
+            var resultBody = "{\"version\": \"old\"}";
+
+            // Act
+            var updatedBody = _service.UpdateBody(path, response, resultBody);
+
+            // Assert
+            Assert.Contains("\"version\":\"v1\"", updatedBody);
+        }
     }
 }
