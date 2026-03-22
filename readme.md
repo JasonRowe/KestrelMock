@@ -13,6 +13,8 @@ KestrelMock provides a simple way to mock HTTP APIs for testing purposes. It all
 
 The library has evolved to prefer managing mocks via **Admin Endpoints** and **Observable Mocks** instead of relying on `appsettings.json` configuration, making it easier to manage and interact with mock settings dynamically.
 
+**Note:** The Blazor UI included in KestrelMock is only embedded and accessible when the server is built/run in **Release** mode.
+
 ---
 
 ## Install

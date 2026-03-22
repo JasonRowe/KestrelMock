@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.SignalR;
 using KestrelMockServer.Settings;
 
 namespace KestrelMockServer.Domain
@@ -8,6 +9,12 @@ namespace KestrelMockServer.Domain
     public class Watcher
     {
         private readonly ConcurrentDictionary<Guid, Queue<WatchLog>> watchLogs = new ConcurrentDictionary<Guid, Queue<WatchLog>>();
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<Services.TrafficHub> _hubContext;
+
+        public Watcher(Microsoft.AspNetCore.SignalR.IHubContext<Services.TrafficHub> hubContext = null)
+        {
+            _hubContext = hubContext;
+        }
 
         public void Log(string path, string body, string method, Watch watch)
         {
@@ -22,6 +29,11 @@ namespace KestrelMockServer.Domain
             if (watchLogs[watch.Id].Count > watch.RequestLogLimit)
             {
                 watchLogs[watch.Id].Dequeue();
+            }
+
+            if (_hubContext != null)
+            {
+                _ = _hubContext.Clients.All.SendAsync("ReceiveTraffic", watchLog, watch.Id);
             }
         }
 
